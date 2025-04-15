@@ -2,20 +2,19 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>블로그 승인 요청</title>
+  <title>블로그 검토 페이지</title>
   <style>
     body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
+      padding: 40px;
+    }
+    #loading {
+      font-size: 20px;
+      color: #888;
     }
     button {
-      margin: 10px;
+      margin: 12px;
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
@@ -23,24 +22,63 @@
   </style>
 </head>
 <body>
-  <h2>✍️ 블로그 초안: HYL</h2>
-  <p>5분 만에 살펴보는 HYL의 자동 생성 콘텐츠입니다.<br>효율적인 마케팅 자동화, HYL과 함께해보세요.</p>
+  <h2>✍️ HYL 블로그 초안 검토</h2>
+  <div id="loading">⏳ 콘텐츠를 불러오는 중입니다...</div>
+  <div id="content" style="display: none;"></div>
 
+  <br><br>
   <button onclick="sendWebhook('approve')">✅ 승인</button>
   <button onclick="sendWebhook('retry')">🔁 재생성</button>
 
   <script>
+    const postId = new URLSearchParams(window.location.search).get('post_id');
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";  // 직접 입력해야 해!
+    const baseId = "appzPMEgLj1HAFx0U";
+    const tableName = "AI%20생성%20결과";  // 공백은 %20으로 처리
+    const viewName = "한양3D팩토리";
+    const webhookUrl = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+
+    if (!postId) {
+      document.getElementById("loading").innerText = "❌ post_id가 URL에 없습니다.";
+    } else {
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(viewName)}&filterByFormula={post_id}='${postId}'`, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.records.length === 0) {
+          document.getElementById("loading").innerText = "❌ 해당 콘텐츠를 찾을 수 없습니다.";
+          return;
+        }
+        const html = data.records[0].fields["내용(html)"];
+        document.getElementById("loading").style.display = "none";
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = html;
+        contentDiv.style.display = "block";
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("loading").innerText = "⚠️ 불러오기 중 오류가 발생했습니다.";
+      });
+    }
+
     function sendWebhook(action) {
-      fetch("https://hook.make.com/당신의-webhook-url", {
+      fetch(webhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          post_id: "abc123",
+          post_id: postId,
           action: action
         })
-      })
-      .then(() => alert("요청이 전송되었습니다."))
-      .catch(() => alert("오류 발생"));
+      }).then(() => {
+        alert("요청이 전송되었습니다.");
+      }).catch(() => {
+        alert("오류 발생");
+      });
     }
   </script>
 </body>
