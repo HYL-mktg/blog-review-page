@@ -75,7 +75,7 @@
           return;
         }
         data.records.forEach(record => {
-          const title = record.fields["콘텐츠%제목"];
+          const title = record.fields["콘텐츠 제목"];
           const pid = record.fields["post_id"];
           const link = document.createElement("a");
           link.href = `?company=${company}&post_id=${pid}`;
