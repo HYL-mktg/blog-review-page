@@ -34,6 +34,7 @@
       border: 1px solid #ccc;
       padding: 20px;
       background: #fafafa;
+      min-height: 400px;
     }
   </style>
 </head>
@@ -70,9 +71,9 @@
     let htmlContent = "";
 
     if (!company || !postId) {
-      loading.innerText = "❌ URL에 company 또는 post_id가 누락되었습니다.";
+      loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
     } else {
-      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&filterByFormula={post_id}='${postId}'`, {
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&filterByFormula=post_id='${postId}'`, {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       .then(res => res.json())
@@ -82,7 +83,7 @@
           contentDisplay.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
           return;
         }
-        htmlContent = data.records[0].fields["내용(html)"];
+        htmlContent = data.records[0].fields["내용(html)"] || "";
 
         contentDisplay.innerHTML = htmlContent;
         buttons.style.display = "block";
@@ -106,6 +107,7 @@
 
     function toggleEditMode() {
       const isEditing = editorContainer.style.display === "block";
+      if (!isEditing) quill.root.innerHTML = contentDisplay.innerHTML;
       editorContainer.style.display = isEditing ? "none" : "block";
       contentDisplay.style.display = isEditing ? "block" : "none";
     }
