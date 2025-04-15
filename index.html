@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>블로그 승인 요청</title>
+</head>
+<body>
+  <h2>✍️ 블로그 초안: 스마트팩토리란?</h2>
+  <p>5분 만에 읽는 공장 자동화 콘텐츠입니다.<br>스마트팩토리의 개념, 장점, 도입 방법을 요약했습니다.</p>
+
+  <button onclick="sendWebhook('approve')">✅ 승인</button>
+  <button onclick="sendWebhook('retry')">🔁 재생성</button>
+
+  <script>
+    function sendWebhook(action) {
+      fetch("https://hook.make.com/당신의-webhook-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          post_id: "abc123",
+          action: action
+        })
+      })
+      .then(() => alert("요청이 전송되었습니다."))
+      .catch(() => alert("오류 발생"));
+    }
+  </script>
+</body>
+</html>
