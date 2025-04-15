@@ -3,10 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <title>블로그 승인 요청</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <h2>✍️ 블로그 초안: 스마트팩토리란?</h2>
-  <p>5분 만에 읽는 공장 자동화 콘텐츠입니다.<br>스마트팩토리의 개념, 장점, 도입 방법을 요약했습니다.</p>
+  <h2>✍️ 블로그 초안: HYL</h2>
+  <p>5분 만에 살펴보는 HYL의 자동 생성 콘텐츠입니다.<br>효율적인 마케팅 자동화, HYL과 함께해보세요.</p>
 
   <button onclick="sendWebhook('approve')">✅ 승인</button>
   <button onclick="sendWebhook('retry')">🔁 재생성</button>
