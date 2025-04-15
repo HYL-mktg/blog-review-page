@@ -2,16 +2,22 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>블로그 검토 페이지</title>
+  <title>HYL 블로그 승인 시스템</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
       padding: 40px;
     }
-    #loading {
-      font-size: 20px;
-      color: #888;
+    .title-link {
+      display: block;
+      margin: 12px 0;
+      font-size: 18px;
+      text-decoration: none;
+      color: #0066cc;
+    }
+    .title-link:hover {
+      text-decoration: underline;
     }
     button {
       margin: 12px;
@@ -19,69 +25,100 @@
       font-size: 16px;
       cursor: pointer;
     }
+    #loading {
+      font-size: 18px;
+      color: #888;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h2>✍️ HYL 블로그 초안 검토</h2>
-  <div id="loading">⏳ 콘텐츠를 불러오는 중입니다...</div>
+  <h2>✍️ HYL 블로그 콘텐츠 검토</h2>
+  <div id="loading">⏳ 불러오는 중입니다...</div>
+  <div id="list" style="display: none;"></div>
   <div id="content" style="display: none;"></div>
-
-  <br><br>
-  <button onclick="sendWebhook('approve')">✅ 승인</button>
-  <button onclick="sendWebhook('retry')">🔁 재생성</button>
+  <div id="buttons" style="display: none;">
+    <button onclick="sendWebhook('approve')">✅ 승인</button>
+    <button onclick="sendWebhook('retry')">🔁 재생성</button>
+    <button onclick="goHome()">🏠 홈으로</button>
+  </div>
 
   <script>
-    const postId = new URLSearchParams(window.location.search).get('post_id');
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";  // 여기에 개인 API 키 입력
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+    const postId = urlParams.get("post_id");
+
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI%20생성%20결과";
-    const viewName = "한양3D팩토리";
+    const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+    const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
 
-    // 버튼별 Webhook
-    const webhook_approve = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
-    const webhook_retry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
+    const loading = document.getElementById("loading");
+    const contentDiv = document.getElementById("content");
+    const listDiv = document.getElementById("list");
+    const buttons = document.getElementById("buttons");
 
-    // Airtable에서 HTML 콘텐츠 불러오기
-    if (!postId) {
-      document.getElementById("loading").innerText = "❌ post_id가 URL에 없습니다.";
-    } else {
-      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(viewName)}&filterByFormula={post_id}='${postId}'`, {
-        headers: {
-          Authorization: `Bearer ${apiKey}`
-        }
+    if (!company) {
+      loading.innerText = "❌ URL에 회사명(company)이 포함되어야 합니다.";
+    } else if (company && !postId) {
+      // 리스트 보기
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&sort[0][field]=작성일&sort[0][direction]=desc&pageSize=30`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
       })
       .then(res => res.json())
       .then(data => {
-        if (data.records.length === 0) {
-          document.getElementById("loading").innerText = "❌ 해당 콘텐츠를 찾을 수 없습니다.";
+        loading.style.display = "none";
+        listDiv.style.display = "block";
+        if (!data.records.length) {
+          listDiv.innerText = "🔍 해당 기업의 콘텐츠가 없습니다.";
           return;
         }
-        const html = data.records[0].fields["내용(html)"];
-        document.getElementById("loading").style.display = "none";
-        const contentDiv = document.getElementById("content");
-        contentDiv.innerHTML = html;
-        contentDiv.style.display = "block";
+        data.records.forEach(record => {
+          const title = record.fields["콘텐츠%제목"];
+          const pid = record.fields["post_id"];
+          const link = document.createElement("a");
+          link.href = `?company=${company}&post_id=${pid}`;
+          link.className = "title-link";
+          link.innerText = title;
+          listDiv.appendChild(link);
+        });
       })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("loading").innerText = "⚠️ 불러오기 중 오류가 발생했습니다.";
-      });
+      .catch(() => loading.innerText = "⚠️ 목록 불러오기 중 오류 발생");
+    } else if (company && postId) {
+      // 상세 보기
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&filterByFormula={post_id}='${postId}'`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.style.display = "none";
+        contentDiv.style.display = "block";
+        buttons.style.display = "block";
+        if (!data.records.length) {
+          contentDiv.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
+          return;
+        }
+        contentDiv.innerHTML = data.records[0].fields["내용(html)"];
+      })
+      .catch(() => loading.innerText = "⚠️ 상세 보기 중 오류 발생");
     }
 
     function sendWebhook(action) {
-      const url = action === "approve" ? webhook_approve : webhook_retry;
+      const url = action === "approve" ? webhookApprove : webhookRetry;
       fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post_id: postId,
-          action: action
-        })
+        body: JSON.stringify({ post_id: postId, action: action, company: company })
       }).then(() => {
         alert(`"${action}" 요청이 전송되었습니다.`);
       }).catch(() => {
-        alert("요청 전송 중 오류가 발생했습니다.");
+        alert("요청 전송 중 오류 발생");
       });
+    }
+
+    function goHome() {
+      window.location.href = `?company=${company}`;
     }
   </script>
 </body>
