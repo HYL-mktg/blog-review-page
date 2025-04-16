@@ -68,7 +68,7 @@
           const postId = r.fields["post_id"];
           const title = r.fields["콘텐츠 제목"] || postId || "(제목 없음)";
           const li = document.createElement("li");
-          li.innerHTML = `<a href='?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}'>${title}</a>`;
+          li.innerHTML = `<a href='index.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}'>${title}</a>`;
           listEl.appendChild(li);
         });
       })
