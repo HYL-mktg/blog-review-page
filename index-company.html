@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>🏢 HYL 콘텐츠 관리 – 기업 선택</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    h2 {
+      font-size: 28px;
+      margin-bottom: 24px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    li {
+      margin: 12px 0;
+      font-size: 20px;
+    }
+    a {
+      text-decoration: none;
+      color: #0077cc;
+      font-weight: bold;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h2>📁 기업별 블로그 콘텐츠 관리</h2>
+  <p>검토할 기업을 선택하세요:</p>
+  <ul id="company-list">
+    <li>⏳ 불러오는 중...</li>
+  </ul>
+
+  <script>
+    const apiKey = "YOUR_API_KEY"; // ← 실제 Airtable API Key
+    const baseId = "appzPMEgLj1HAFx0U";
+    const tableName = "AI 생성 결과";
+
+    const companyList = document.getElementById("company-list");
+
+    fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?fields[]=기업명&maxRecords=1000`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const companies = data.records
+        .map(r => r.fields["기업명"])
+        .filter(Boolean);
+
+      const unique = [...new Set(companies)];
+
+      if (!unique.length) {
+        companyList.innerHTML = `<li>📭 등록된 기업이 없습니다.</li>`;
+        return;
+      }
+
+      companyList.innerHTML = ""; // 초기화
+      unique.forEach(name => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a>`;
+        companyList.appendChild(li);
+      });
+    })
+    .catch(err => {
+      console.error(err);
+      companyList.innerHTML = `<li>⚠️ 기업명 목록을 불러오지 못했습니다.</li>`;
+    });
+  </script>
+</body>
+</html>
