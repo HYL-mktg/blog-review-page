@@ -101,7 +101,11 @@
         currentContent = htmlContent;
 
         contentDisplay.innerHTML = htmlContent;
-        buttons.style.display = "block";
+        buttons.style.display = "block"; 
+        
+        // 열람 여부 저장
+        const viewedKey = `viewed_${company}_${postId}`;
+        localStorage.setItem(viewedKey, "true");
 
         quill = new Quill("#editor-container", {
           theme: "snow",
