@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>HYL 블로그 컨텐츠 리스트</title>
+  <title>📄 HYL 블로그 콘텐츠 리스트</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -12,7 +12,7 @@
     table {
       margin: 20px auto;
       border-collapse: collapse;
-      width: 80%;
+      width: 90%;
     }
     th, td {
       border: 1px solid #ccc;
@@ -22,10 +22,11 @@
     th {
       background: #f7f7f7;
     }
+    .new { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h2>📄 HYL 블로그 컨텐츠 리스트</h2>
+  <h2>📄 HYL 블로그 콘텐츠 리스트</h2>
   <table id="post-table">
     <thead>
       <tr>
@@ -35,14 +36,16 @@
         <th>열람 여부</th>
       </tr>
     </thead>
-    <tbody id="table-body"></tbody>
+    <tbody id="table-body">
+      <tr><td colspan="4">⏳ 로딩 중입니다...</td></tr>
+    </tbody>
   </table>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const company = urlParams.get("company");
 
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; // 실제 Airtable API Key로 교체
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI 생성 결과";
 
@@ -52,14 +55,16 @@
       tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
     } else {
       const formula = `{기업명}="${company}"`;
-      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=post_id&sort[0][direction]=desc`;
+      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=post_id&sort[0][direction]=desc&maxRecords=30`;
 
       fetch(url, {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       .then(res => res.json())
       .then(data => {
-        if (!data.records || !data.records.length) {
+        tableBody.innerHTML = ""; // 기존 메시지 제거
+
+        if (!data.records || data.records.length === 0) {
           tableBody.innerHTML = `<tr><td colspan="4">📭 표시할 콘텐츠가 없습니다.</td></tr>`;
           return;
         }
@@ -68,20 +73,29 @@
           const fields = record.fields;
           const title = fields["콘텐츠 제목"] || "-";
           const postId = fields["post_id"] || "-";
-          const createdDate = postId.length >= 8 ? `${postId.slice(0,4)}-${postId.slice(4,6)}-${postId.slice(6,8)}` : "-";
+          const createdDate = postId.length >= 8 ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}` : "-";
 
-          const viewed = sessionStorage.getItem(`viewed_${company}_${postId}`) === "true" ? "열람됨" : "new!";
+          const viewedKey = `viewed_${company}_${postId}`;
+          const isViewed = localStorage.getItem(viewedKey) === "true";
+          const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
+
+          const link = `index.html?company=${encodeURIComponent(company)}&post_id=${postId}`;
 
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${index + 1}</td>
-            <td><a href="https://hyl-mktg.github.io/blog-review-page/index.html?company=${encodeURIComponent(company)}&post_id=${postId}" onclick="sessionStorage.setItem('viewed_${company}_${postId}', 'true')">${title}</a></td>
+            <td><a href="${link}">${title}</a></td>
             <td>${createdDate}</td>
-            <td>${viewed}</td>
+            <td>${viewedLabel}</td>
           `;
           tableBody.appendChild(row);
         });
       })
-      .catch(err => {
-        console.error(err);
-        tableBody.innerHTML =
+      .catch(error => {
+        console.error(error);
+        tableBody.innerHTML = `<tr><td colspan="4">⚠️ Airtable 데이터 불러오기 실패</td></tr>`;
+      });
+    }
+  </script>
+</body>
+</html>
