@@ -83,10 +83,8 @@
           contentDisplay.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
           return;
         }
-        htmlContent = data.records[0].fields["내용(html)"] || "";
 
-        contentDisplay.innerHTML = htmlContent;
-        buttons.style.display = "block";
+        htmlContent = data.records[0].fields["내용(html)"] || "";
 
         quill = new Quill("#editor-container", {
           theme: "snow",
@@ -100,14 +98,24 @@
             ]
           }
         });
+
+        // 초기 표시: 콘텐츠 보여주기 모드
+        contentDisplay.innerHTML = htmlContent;
         quill.root.innerHTML = htmlContent;
+        buttons.style.display = "block";
       })
       .catch(() => loading.innerText = "⚠️ 불러오기 오류 발생");
     }
 
     function toggleEditMode() {
       const isEditing = editorContainer.style.display === "block";
-      if (!isEditing) quill.root.innerHTML = contentDisplay.innerHTML;
+      if (isEditing) {
+        // 저장 후 수정 종료 → 최신 내용 반영
+        htmlContent = quill.root.innerHTML;
+        contentDisplay.innerHTML = htmlContent;
+      } else {
+        quill.root.innerHTML = htmlContent;
+      }
       editorContainer.style.display = isEditing ? "none" : "block";
       contentDisplay.style.display = isEditing ? "block" : "none";
     }
@@ -128,12 +136,12 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      .then(() => alert(`"${action}" 요청이 전송되었습니다.`))
+      .then(() => alert(`\"${action}\" 요청이 전송되었습니다.`))
       .catch(() => alert("요청 전송 중 오류 발생"));
     }
 
     function goHome() {
-      window.location.href = `?company=${company}`;
+      window.location.href = `blog-list-page.html?company=${company}`;
     }
   </script>
 </body>
