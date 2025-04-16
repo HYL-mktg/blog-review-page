@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>HYL 블로그 리스트</title>
+  <title>HYL 블로그 콘텐츠 리스트</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -10,28 +10,29 @@
       text-align: center;
     }
     table {
-      margin: auto;
+      margin: 0 auto;
       border-collapse: collapse;
-      width: 80%;
+      width: 90%;
     }
     th, td {
-      padding: 12px 15px;
       border: 1px solid #ccc;
+      padding: 12px;
       text-align: left;
     }
     th {
-      background-color: #f9f9f9;
+      background: #f8f8f8;
     }
-    h2 {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    a {
+      text-decoration: none;
+      color: #0077cc;
     }
   </style>
 </head>
 <body>
-  <h2>📝 HYL 블로그 콘텐츠 리스트</h2>
+  <h2>🗒️ HYL 블로그 콘텐츠 리스트</h2>
   <table>
     <thead>
       <tr>
@@ -41,43 +42,50 @@
         <th>열람 여부</th>
       </tr>
     </thead>
-    <tbody id="list-body"></tbody>
+    <tbody id="content-list"></tbody>
   </table>
 
   <script>
-    const company = new URLSearchParams(window.location.search).get("company");
     const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI%20생성%20결과";
-    const viewName = company;
+    const company = new URLSearchParams(window.location.search).get("company") || "한양3D팩토리";
 
-    fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(viewName)}`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
+    fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`
+      }
     })
     .then(res => res.json())
     .then(data => {
-      const listBody = document.getElementById("list-body");
-      const records = data.records.filter(r => r.fields["post_id"]);
-      records.sort((a, b) => a.fields["post_id"].localeCompare(b.fields["post_id"]));
-      records.forEach((record, index) => {
-        const title = record.fields["콘텐츠 제목"] || "(제목 없음)";
-        const postId = record.fields["post_id"] || "-";
-        const createdDate = postId.split("-")[0] || "-";
-        const viewedKey = `viewed_${company}_${postId}`;
-        const isViewed = localStorage.getItem(viewedKey) === "true" ? "✅" : "-";
+      const listEl = document.getElementById("content-list");
+      const records = data.records.filter(r => r.fields["콘텐츠 제목"] && r.fields["post_id"]);
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
+      records.sort((a, b) => {
+        const aid = a.fields["post_id"];
+        const bid = b.fields["post_id"];
+        return aid.localeCompare(bid);
+      });
+
+      records.forEach((record, index) => {
+        const title = record.fields["콘텐츠 제목"];
+        const postId = record.fields["post_id"];
+        const createdAt = postId ? postId.split("-")[0] : "-";
+        const visited = localStorage.getItem(`${company}-${postId}`) === "1" ? "✅" : "-";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
           <td>${index + 1}</td>
           <td><a href="index.html?company=${encodeURIComponent(company)}&post_id=${postId}">${title}</a></td>
-          <td>${createdDate}</td>
-          <td>${isViewed}</td>
+          <td>${createdAt}</td>
+          <td>${visited}</td>
         `;
-        listBody.appendChild(row);
+        listEl.appendChild(tr);
       });
     })
     .catch(err => {
-      document.getElementById("list-body").innerHTML = `<tr><td colspan="4">오류 발생: ${err.message}</td></tr>`;
+      console.error("에러 발생:", err);
+      document.getElementById("content-list").innerHTML = `<tr><td colspan="4">❌ 데이터 로드 실패</td></tr>`;
     });
   </script>
 </body>
