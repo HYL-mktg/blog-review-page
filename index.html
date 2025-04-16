@@ -36,6 +36,9 @@
       background: #fafafa;
       min-height: 400px;
     }
+    .edit-buttons {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -43,11 +46,19 @@
   <div id="loading">⏳ 불러오는 중입니다...</div>
   <div id="content-display"></div>
   <div id="editor-container"></div>
+
+  <!-- 기본 버튼 -->
   <div id="buttons" style="display:none;">
     <button onclick="toggleEditMode()">✏️ 수정</button>
     <button onclick="sendWebhook('approve')">✅ 승인</button>
     <button onclick="sendWebhook('retry')">🔁 재생성</button>
     <button onclick="goHome()">🏠 홈으로</button>
+  </div>
+
+  <!-- 수정 모드 버튼 -->
+  <div id="edit-buttons" class="edit-buttons">
+    <button onclick="applyEdit()">📝 수정 완료</button>
+    <button onclick="cancelEdit()">❌ 취소</button>
   </div>
 
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
@@ -66,9 +77,11 @@
     const contentDisplay = document.getElementById("content-display");
     const editorContainer = document.getElementById("editor-container");
     const buttons = document.getElementById("buttons");
+    const editButtons = document.getElementById("edit-buttons");
 
     let quill;
-    let htmlContent = "";
+    let htmlContent = ""; // 원본 HTML
+    let currentContent = ""; // 현재 표시 중인 내용
 
     if (!company || !postId) {
       loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
@@ -85,6 +98,7 @@
         }
 
         htmlContent = data.records[0].fields["내용(html)"] || "";
+        currentContent = htmlContent;
 
         contentDisplay.innerHTML = htmlContent;
         buttons.style.display = "block";
@@ -102,20 +116,35 @@
           }
         });
 
-        // 초기화 후 콘텐츠 삽입
         quill.clipboard.dangerouslyPasteHTML(htmlContent);
       })
       .catch(() => loading.innerText = "⚠️ 불러오기 오류 발생");
     }
 
     function toggleEditMode() {
-      const isEditing = editorContainer.style.display === "block";
-      if (!isEditing) {
-        // 콘텐츠를 에디터로 복사
-        quill.clipboard.dangerouslyPasteHTML(contentDisplay.innerHTML);
-      }
-      editorContainer.style.display = isEditing ? "none" : "block";
-      contentDisplay.style.display = isEditing ? "block" : "none";
+      editorContainer.style.display = "block";
+      contentDisplay.style.display = "none";
+      buttons.style.display = "none";
+      editButtons.style.display = "block";
+
+      quill.clipboard.dangerouslyPasteHTML(currentContent); // 현재 콘텐츠를 에디터로
+    }
+
+    function applyEdit() {
+      currentContent = quill.root.innerHTML;
+      contentDisplay.innerHTML = currentContent;
+
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
+    }
+
+    function cancelEdit() {
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
     }
 
     function sendWebhook(action) {
@@ -126,7 +155,7 @@
         action: action
       };
       if (action === "approve") {
-        payload["edited_html"] = quill.root.innerHTML;
+        payload["edited_html"] = currentContent;
       }
 
       fetch(url, {
