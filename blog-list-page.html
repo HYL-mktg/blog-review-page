@@ -2,40 +2,36 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>HYL 블로그 콘텐츠 리스트</title>
+  <title>HYL 블로그 리스트</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      text-align: center;
       padding: 40px;
+      text-align: center;
     }
     table {
-      margin: 0 auto;
+      margin: auto;
       border-collapse: collapse;
-      width: 90%;
+      width: 80%;
     }
     th, td {
+      padding: 12px 15px;
       border: 1px solid #ccc;
-      padding: 12px;
       text-align: left;
     }
     th {
-      background-color: #f7f7f7;
-    }
-    tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    a {
-      color: #0056cc;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
+    h2 {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
   </style>
 </head>
 <body>
-  <h2>📄 HYL 블로그 콘텐츠 리스트</h2>
+  <h2>📝 HYL 블로그 콘텐츠 리스트</h2>
   <table>
     <thead>
       <tr>
@@ -45,50 +41,44 @@
         <th>열람 여부</th>
       </tr>
     </thead>
-    <tbody id="post-list"></tbody>
+    <tbody id="list-body"></tbody>
   </table>
 
   <script>
-    const company = new URLSearchParams(location.search).get("company");
+    const company = new URLSearchParams(window.location.search).get("company");
     const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI%20생성%20결과";
+    const viewName = company;
 
-    async function loadPosts() {
-      if (!company) return;
+    fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(viewName)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const listBody = document.getElementById("list-body");
+      const records = data.records.filter(r => r.fields["post_id"]);
+      records.sort((a, b) => a.fields["post_id"].localeCompare(b.fields["post_id"]));
+      records.forEach((record, index) => {
+        const title = record.fields["콘텐츠 제목"] || "(제목 없음)";
+        const postId = record.fields["post_id"] || "-";
+        const createdDate = postId.split("-")[0] || "-";
+        const viewedKey = `viewed_${company}_${postId}`;
+        const isViewed = localStorage.getItem(viewedKey) === "true" ? "✅" : "-";
 
-      const res = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}`, {
-        headers: { Authorization: `Bearer ${apiKey}` }
-      });
-      const data = await res.json();
-      const records = data.records;
-
-      const listEl = document.getElementById("post-list");
-      listEl.innerHTML = "";
-
-      const validPosts = records
-        .filter(r => r.fields["post_id"] && r.fields["콘텐츠 제목"])
-        .sort((a, b) => (a.fields["post_id"] > b.fields["post_id"]) ? 1 : -1);
-
-      validPosts.forEach((record, idx) => {
-        const { post_id, 콘텐츠제목 } = record.fields;
-        const postDate = post_id.slice(0, 8);
-        const viewedKey = `viewed_${company}_${post_id}`;
-        const viewed = localStorage.getItem(viewedKey) === "true";
-
-        const row = `
-          <tr>
-            <td>${idx + 1}</td>
-            <td><a href="index.html?company=${encodeURIComponent(company)}&post_id=${post_id}">${콘텐츠제목}</a></td>
-            <td>${postDate}</td>
-            <td>${viewed ? "✓" : "-"}</td>
-          </tr>
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td><a href="index.html?company=${encodeURIComponent(company)}&post_id=${postId}">${title}</a></td>
+          <td>${createdDate}</td>
+          <td>${isViewed}</td>
         `;
-        listEl.insertAdjacentHTML("beforeend", row);
+        listBody.appendChild(row);
       });
-    }
-
-    loadPosts();
+    })
+    .catch(err => {
+      document.getElementById("list-body").innerHTML = `<tr><td colspan="4">오류 발생: ${err.message}</td></tr>`;
+    });
   </script>
 </body>
 </html>
