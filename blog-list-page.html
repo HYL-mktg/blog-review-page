@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>HYL 블로그 콘텐츠 리스트</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 10px 0;
+    }
+    a {
+      text-decoration: none;
+      font-size: 18px;
+      color: #007bff;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #loading {
+      font-size: 18px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 HYL 블로그 콘텐츠 리스트</h2>
+  <div id="loading">⏳ 콘텐츠를 불러오는 중입니다...</div>
+  <ul id="list" style="display:none;"></ul>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
+    const baseId = "appzPMEgLj1HAFx0U";
+    const tableName = "AI%20생성%20결과";
+
+    const listEl = document.getElementById("list");
+    const loadingEl = document.getElementById("loading");
+
+    if (!company) {
+      loadingEl.innerHTML = '<span style="color:red;">❌ URL에 company가 누락되었습니다.</span>';
+    } else {
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&sort%5B0%5D%5Bfield%5D=작성일&sort%5B0%5D%5Bdirection%5D=desc`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        loadingEl.style.display = "none";
+        listEl.style.display = "block";
+
+        const records = data.records.slice(0, 30); // 최신 30개
+
+        if (records.length === 0) {
+          listEl.innerHTML = "<li>❌ 해당 기업의 콘텐츠가 없습니다.</li>";
+          return;
+        }
+
+        records.forEach(r => {
+          const postId = r.fields["post_id"];
+          const title = r.fields["콘텐츠 제목"] || postId || "(제목 없음)";
+          const li = document.createElement("li");
+          li.innerHTML = `<a href='?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}'>${title}</a>`;
+          listEl.appendChild(li);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        loadingEl.innerHTML = "⚠️ 콘텐츠 불러오기 중 오류가 발생했습니다.";
+      });
+    }
+  </script>
+</body>
+</html>
