@@ -2,14 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>📋 HYL 블로그 콘텐츠 리스트</title>
+  <title>HYL 블로그 콘텐츠 리스트</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       padding: 40px;
-      background: #fff;
-    }
-    h2 {
       text-align: center;
     }
     table {
@@ -18,72 +15,94 @@
       border-collapse: collapse;
     }
     th, td {
-      padding: 10px;
+      border: 1px solid #ddd;
+      padding: 12px;
       text-align: left;
-      border-bottom: 1px solid #ccc;
     }
     th {
       background-color: #f8f8f8;
     }
-    td a {
-      text-decoration: none;
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .title-link {
       color: #007bff;
+      text-decoration: none;
     }
-    td a:hover {
+    .title-link:hover {
       text-decoration: underline;
-    }
-    .new {
-      color: red;
-      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h2>📋 HYL 블로그 콘텐츠 리스트</h2>
+  <h2>📄 HYL 블로그 컨텐츠 리스트</h2>
   <table>
     <thead>
       <tr>
         <th>순번</th>
         <th>제목</th>
         <th>생성일</th>
-        <th>열람 여부</th>
+        <th>열랭 여부</th>
       </tr>
     </thead>
-    <tbody id="post-list"></tbody>
+    <tbody id="post-list">
+      <!-- JS 데이터를 가져와서 가지 여기에 넣을 것-->
+    </tbody>
   </table>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const company = urlParams.get("company");
+
     const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI%20생성%20결과";
 
-    fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-      const listContainer = document.getElementById("post-list");
-      const records = data.records
-        .filter(r => r.fields["post_id"] && r.fields["콘텐츠 제목"])
-        .sort((a, b) => a.fields["post_id"].localeCompare(b.fields["post_id"]));
+    if (!company) {
+      document.getElementById("post-list").innerHTML = "<tr><td colspan='4'>❌ URL에 company 값이 누락되었습니다.</td></tr>";
+    } else {
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      .then(response => response.json())
+      .then(data => {
+        const postList = document.getElementById("post-list");
+        postList.innerHTML = "";
 
-      records.forEach((record, index) => {
-        const { post_id, 콘텐츠제목 = record.fields["콘텐츠 제목"], 열람여부 = record.fields["열람 여부"] } = record.fields;
-        const date = post_id.split("-")[0];
-        const isNew = 열람여부 === "new!";
+        if (!data.records.length) {
+          postList.innerHTML = "<tr><td colspan='4'>❌ 해당 기업의 콘텐츠가 없습니다.</td></tr>";
+          return;
+        }
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td><a href="index.html?company=${encodeURIComponent(company)}&post_id=${post_id}">${콘텐츠제목}</a></td>
-          <td>${date}</td>
-          <td>${isNew ? '<span class="new">new!</span>' : ''}</td>
-        `;
-        listContainer.appendChild(row);
+        data.records.sort((a, b) => {
+          const idA = a.fields["post_id"] || "";
+          const idB = b.fields["post_id"] || "";
+          return idA.localeCompare(idB);
+        });
+
+        data.records.forEach((record, index) => {
+          const fields = record.fields;
+          const title = fields["콘텐츠 제목"] || "(제목 없음)";
+          const postId = fields["post_id"] || "-";
+          const viewStatus = fields["열람 여부"] || "-";
+          const createdDate = postId.slice(0, 8); // 'YYYYMMDD' 형태
+
+          const row = `
+            <tr>
+              <td>${index + 1}</td>
+              <td><a class="title-link" href="index.html?company=${encodeURIComponent(company)}&post_id=${postId}">${title}</a></td>
+              <td>${createdDate}</td>
+              <td>${viewStatus}</td>
+            </tr>`;
+
+          postList.insertAdjacentHTML("beforeend", row);
+        });
+      })
+      .catch(error => {
+        console.error(error);
+        document.getElementById("post-list").innerHTML = "<tr><td colspan='4'>⚠️ 데이터 로딩 오류</td></tr>";
       });
-    });
+    }
   </script>
 </body>
 </html>
