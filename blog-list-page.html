@@ -42,16 +42,19 @@
     const urlParams = new URLSearchParams(window.location.search);
     const company = urlParams.get("company");
 
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; // <-- 여기에 실제 API Key 입력
+    const apiKey = "YOUR_API_KEY"; // 실제 Airtable API Key로 교체
     const baseId = "appzPMEgLj1HAFx0U";
-    const tableName = "AI%20생성%20결과";
+    const tableName = "AI 생성 결과";
 
     const tableBody = document.getElementById("table-body");
 
     if (!company) {
       tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
     } else {
-      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula=${encodeURIComponent(`{company}="${company}"`)}&sort[0][field]=post_id&sort[0][direction]=desc`, {
+      const formula = `{기업명}="${company}"`;
+      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=post_id&sort[0][direction]=desc`;
+
+      fetch(url, {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       .then(res => res.json())
@@ -81,9 +84,4 @@
       })
       .catch(err => {
         console.error(err);
-        tableBody.innerHTML = `<tr><td colspan="4">⚠️ Airtable 데이터 조회 실패</td></tr>`;
-      });
-    }
-  </script>
-</body>
-</html>
+        tableBody.innerHTML =
