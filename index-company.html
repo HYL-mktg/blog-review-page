@@ -31,6 +31,11 @@
     a:hover {
       text-decoration: underline;
     }
+    .count {
+      color: #999;
+      font-size: 16px;
+      margin-left: 8px;
+    }
   </style>
 </head>
 <body>
@@ -41,10 +46,9 @@
   </ul>
 
   <script>
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; // ← 실제 Airtable API Key
+    const apiKey = "YOUR_API_KEY"; // ← Airtable API Key로 교체
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI 생성 결과";
-
     const companyList = document.getElementById("company-list");
 
     fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?fields[]=기업명&maxRecords=1000`, {
@@ -52,21 +56,26 @@
     })
     .then(res => res.json())
     .then(data => {
-      const companies = data.records
-        .map(r => r.fields["기업명"])
-        .filter(Boolean);
+      const counts = {};  // {기업명: 개수}
 
-      const unique = [...new Set(companies)];
+      data.records.forEach(record => {
+        const name = record.fields["기업명"];
+        if (name) {
+          counts[name] = (counts[name] || 0) + 1;
+        }
+      });
 
-      if (!unique.length) {
+      const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko'));
+
+      if (!sortedNames.length) {
         companyList.innerHTML = `<li>📭 등록된 기업이 없습니다.</li>`;
         return;
       }
 
-      companyList.innerHTML = ""; // 초기화
-      unique.forEach(name => {
+      companyList.innerHTML = "";
+      sortedNames.forEach(name => {
         const li = document.createElement("li");
-        li.innerHTML = `<a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a>`;
+        li.innerHTML = `<a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a> <span class="count">(총 ${counts[name]}건)</span>`;
         companyList.appendChild(li);
       });
     })
