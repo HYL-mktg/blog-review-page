@@ -10,7 +10,7 @@
       text-align: center;
       padding: 40px;
     }
-    #editor-container, #content-display {
+    #editor-container, #content-display, #meta-display {
       max-width: 800px;
       margin: 20px auto;
       text-align: left;
@@ -39,10 +39,38 @@
     .edit-buttons {
       display: none;
     }
+
+    /* 메타 정보 스타일 */
+    #meta-display {
+      margin-bottom: 10px;
+    }
+    .meta-company {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    .meta-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .meta-date {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 16px;
+    }
+    .meta-tags {
+      font-size: 14px;
+      color: #555;
+      margin-top: 30px;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2>✍️ HYL 블로그 콘텐츠 검토</h2>
+  <div id="meta-display"></div>
   <div id="loading">⏳ 불러오는 중입니다...</div>
   <div id="content-display"></div>
   <div id="editor-container"></div>
@@ -67,7 +95,7 @@
     const company = urlParams.get("company");
     const postId = urlParams.get("post_id");
 
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; 
     const baseId = "appzPMEgLj1HAFx0U";
     const tableName = "AI%20생성%20결과";
     const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
@@ -75,13 +103,14 @@
 
     const loading = document.getElementById("loading");
     const contentDisplay = document.getElementById("content-display");
+    const metaDisplay = document.getElementById("meta-display");
     const editorContainer = document.getElementById("editor-container");
     const buttons = document.getElementById("buttons");
     const editButtons = document.getElementById("edit-buttons");
 
     let quill;
-    let htmlContent = ""; // 원본 HTML
-    let currentContent = ""; // 현재 표시 중인 내용
+    let htmlContent = "";
+    let currentContent = "";
 
     if (!company || !postId) {
       loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
@@ -97,15 +126,25 @@
           return;
         }
 
-        htmlContent = data.records[0].fields["내용(html)"] || "";
+        const record = data.records[0].fields;
+        htmlContent = record["내용(html)"] || "";
         currentContent = htmlContent;
 
-        contentDisplay.innerHTML = htmlContent;
-        buttons.style.display = "block"; 
-        
-        // 열람 여부 저장
-        const viewedKey = `viewed_${company}_${postId}`;
-        localStorage.setItem(viewedKey, "true");
+        const companyName = record["기업명"] || "";
+        const title = record["콘텐츠 제목"] || "제목 없음";
+        const date = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
+        const tags = record["Hashtag"] || "";
+
+        metaDisplay.innerHTML = `
+          <div class="meta-company">${companyName}</div>
+          <div class="meta-title">${title}</div>
+          <div class="meta-date">${date}</div>
+        `;
+
+        contentDisplay.innerHTML = htmlContent + (tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "");
+
+        buttons.style.display = "block";
+        localStorage.setItem(`viewed_${company}_${postId}`, "true");
 
         quill = new Quill("#editor-container", {
           theme: "snow",
@@ -131,13 +170,12 @@
       buttons.style.display = "none";
       editButtons.style.display = "block";
 
-      quill.clipboard.dangerouslyPasteHTML(currentContent); // 현재 콘텐츠를 에디터로
+      quill.clipboard.dangerouslyPasteHTML(currentContent);
     }
 
     function applyEdit() {
       currentContent = quill.root.innerHTML;
       contentDisplay.innerHTML = currentContent;
-
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
