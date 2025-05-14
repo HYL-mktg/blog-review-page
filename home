@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>🔐 콘텐츠 관리 구분 선택</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 30px;
+    }
+    .button-container {
+      display: flex;
+      gap: 40px;
+    }
+    .access-button {
+      padding: 16px 32px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #007acc;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .access-button:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <h1>📂 콘텐츠 관리 접근 선택</h1>
+  <div class="button-container">
+    <button class="access-button" onclick="location.href='index-company.html'">🔒 내부용</button>
+    <button class="access-button" onclick="location.href='index-shared.html'">🔗 공유용</button>
+  </div>
+</body>
+</html>
