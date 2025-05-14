@@ -37,14 +37,14 @@
   </style>
 </head>
 <body>
-  <h2>📁 기업별 블로그 콘텐츠 관리</h2>
+  <h2>📁 기업별 '변환중' 콘텐츠 수</h2>
 
   <table>
     <thead>
       <tr>
         <th>순번</th>
         <th>기업명</th>
-        <th>콘텐츠 수</th>
+        <th>변환중 콘텐츠 수</th>
       </tr>
     </thead>
     <tbody id="company-table-body">
@@ -53,48 +53,42 @@
   </table>
 
   <script>
-    const apiKey = "patLwxyx4W1ItwOdy.b07fc83c4000a2b6a5775350b666a78eab8041dd873ac35d124991cfa80852c2"; // ← Airtable API Key로 교체
-    const baseId = "appTttodWeRmyC8hn";
-    const tableName = "AI 생성 결과";
-
     const tableBody = document.getElementById("company-table-body");
 
-    fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?fields[]=기업명&maxRecords=1000`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-      const counts = {}; // {기업명: 개수}
+    fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
+      .then(res => res.json())
+      .then(records => {
+        const counts = {}; // {기업명: 개수}
 
-      data.records.forEach(record => {
-        const name = record.fields["기업명"];
-        if (name) {
-          counts[name] = (counts[name] || 0) + 1;
+        records.forEach(record => {
+          const name = record.fields["기업명"];
+          if (name) {
+            counts[name] = (counts[name] || 0) + 1;
+          }
+        });
+
+        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko'));
+
+        if (!sortedNames.length) {
+          tableBody.innerHTML = `<tr><td colspan="3">📭 '변환중' 콘텐츠가 없습니다.</td></tr>`;
+          return;
         }
+
+        tableBody.innerHTML = "";
+        sortedNames.forEach((name, index) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
+            <td>${counts[name]}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        tableBody.innerHTML = `<tr><td colspan="3">⚠️ 기업 목록 불러오기 실패</td></tr>`;
       });
-
-      const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko'));
-
-      if (!sortedNames.length) {
-        tableBody.innerHTML = `<tr><td colspan="3">📭 등록된 기업이 없습니다.</td></tr>`;
-        return;
-      }
-
-      tableBody.innerHTML = "";
-      sortedNames.forEach((name, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
-          <td>${counts[name]}</td>
-        `;
-        tableBody.appendChild(row);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      tableBody.innerHTML = `<tr><td colspan="3">⚠️ 기업 목록 불러오기 실패</td></tr>`;
-    });
   </script>
 </body>
 </html>
