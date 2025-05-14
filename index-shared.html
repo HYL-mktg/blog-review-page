@@ -83,7 +83,7 @@
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${index + 1}</td>
-            <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
+            <td><a href="blog-list-page-shared.html?company=${encodeURIComponent(name)}">${name}</a></td>
             <td>${counts[name]}</td>
           `;
           tableBody.appendChild(row);
