@@ -55,10 +55,14 @@
   <script>
     const tableBody = document.getElementById("company-table-body");
 
+    // ✅ Cloudflare Worker로부터 변환중 상태 데이터만 가져오기
     fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("데이터 요청 실패");
+        return res.json();
+      })
       .then(records => {
-        const counts = {}; // {기업명: 개수}
+        const counts = {}; // {기업명: '변환중' 수}
 
         records.forEach(record => {
           const name = record.fields["기업명"];
