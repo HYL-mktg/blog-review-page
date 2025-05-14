@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>🔐 콘텐츠 관리 구분 선택</title>
+  <title>🔐 콘텐츠 관리 접근 선택</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -40,8 +40,21 @@
 <body>
   <h1>📂 콘텐츠 관리 접근 선택</h1>
   <div class="button-container">
-    <button class="access-button" onclick="location.href='index-company.html'">🔒 내부용</button>
+    <button class="access-button" onclick="verifyPassword()">🔒 내부용</button>
     <button class="access-button" onclick="location.href='index-shared.html'">🔗 공유용</button>
   </div>
+
+  <script>
+    function verifyPassword() {
+      const password = prompt("🔐 내부 접근용 비밀번호를 입력하세요:");
+      const correctPassword = "GkdlTmflel!@"; // ← 여기에 내부 비밀번호 설정
+
+      if (password === correctPassword) {
+        location.href = "index-company.html";
+      } else if (password !== null) {
+        alert("❌ 비밀번호가 틀렸습니다.");
+      }
+    }
+  </script>
 </body>
 </html>
