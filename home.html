@@ -20,7 +20,9 @@
     }
     .button-container {
       display: flex;
-      gap: 40px;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
     }
     .access-button {
       padding: 16px 32px;
@@ -42,6 +44,7 @@
   <div class="button-container">
     <button class="access-button" onclick="verifyPassword()">🔒 내부용</button>
     <button class="access-button" onclick="location.href='index-shared.html'">🔗 공유용</button>
+    <button class="access-button" onclick="location.href='blog-list-page-news.html?company=하이쓰리디'">📰 뉴스 콘텐츠</button> <!-- 🔹 추가됨 -->
   </div>
 
   <script>
