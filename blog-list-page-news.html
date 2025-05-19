@@ -1,5 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>📰 HYL AI 뉴스 콘텐츠 리스트</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      text-align: center;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 90%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background: #f7f7f7;
+    }
+    .new {
+      color: red;
+      font-weight: bold;
+    }
+    .status-label {
+      display: inline-block;
+      padding: 4px 8px;
+      font-size: 13px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    .status-검수대기 {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .status-변환중 {
+      background: #cce5ff;
+      color: #004085;
+    }
+    .status-완료 {
+      background: #d4edda;
+      color: #155724;
+    }
+  </style>
+</head>
 <body>
-  <h2>📄 HYL 블로그 콘텐츠 리스트</h2>
+  <h2>📰 HYL AI 뉴스 콘텐츠 리스트</h2>
   <table id="post-table">
     <thead>
       <tr>
@@ -10,22 +59,23 @@
       </tr>
     </thead>
     <tbody id="table-body">
-      <!-- JS로 동적으로 채워질 영역 -->
+      <tr><td colspan="4">⏳ 로딩 중입니다...</td></tr>
     </tbody>
   </table>
 
-  <!-- 여기에 JS 삽입 -->
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const company = params.get("company");
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
+    const baseId = "appzPMEgLj1HAFx0U";
+    const tableName = "AI 뉴스 결과";  // ✅ 여기가 바뀐 부분입니다
+
     const tableBody = document.getElementById("table-body");
 
     if (!company) {
       tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
     } else {
-      const baseId = "appzPMEgLj1HAFx0U";
-      const tableName = "AI 뉴스 결과";
-      const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
       const formula = `{기업명}="${company}"`;
       const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=post_id&sort[0][direction]=desc&maxRecords=30`;
 
@@ -80,3 +130,4 @@
     }
   </script>
 </body>
+</html>
