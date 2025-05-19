@@ -23,9 +23,9 @@
     if (!company) {
       tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
     } else {
-      const baseId = "YOUR_BASE_ID";
-      const tableName = "YOUR_TABLE_NAME";
-      const apiKey = "YOUR_API_KEY";
+      const baseId = "appzPMEgLj1HAFx0U";
+      const tableName = "AI 뉴스 결과";
+      const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873";
       const formula = `{기업명}="${company}"`;
       const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}&sort[0][field]=post_id&sort[0][direction]=desc&maxRecords=30`;
 
