@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>HYL 블로그 승인 시스템</title>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    #editor-container, #content-display, #meta-display {
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: left;
+    }
+    #editor-container {
+      height: 400px;
+      display: none;
+    }
+    button {
+      margin: 12px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #loading {
+      font-size: 18px;
+      color: #888;
+      margin-top: 20px;
+    }
+    #content-display {
+      border: 1px solid #ccc;
+      padding: 20px;
+      background: #fafafa;
+      min-height: 400px;
+    }
+    .edit-buttons {
+      display: none;
+    }
+
+    /* 메타 정보 스타일 */
+    #meta-display {
+      margin-bottom: 10px;
+    }
+    .meta-company {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    .meta-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .meta-date {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 16px;
+    }
+    .meta-tags {
+      font-size: 14px;
+      color: #555;
+      margin-top: 30px;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="meta-display"></div>
+  <div id="loading">⏳ 불러오는 중입니다...</div>
+  <div id="content-display"></div>
+  <div id="editor-container"></div>
+
+  <!-- 기본 버튼 -->
+  <div id="buttons" style="display:none;">
+    <button onclick="toggleEditMode()">✏️ 수정</button>
+    <button onclick="sendWebhook('approve')">✅ 승인</button>
+    <button onclick="sendWebhook('retry')">🔁 재생성</button>
+    <button onclick="goHome()">🏠 홈으로</button>
+  </div>
+
+  <!-- 수정 모드 버튼 -->
+  <div id="edit-buttons" class="edit-buttons">
+    <button onclick="applyEdit()">📝 수정 완료</button>
+    <button onclick="cancelEdit()">❌ 취소</button>
+  </div>
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+    const postId = urlParams.get("post_id");
+
+    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; 
+    const baseId = "appzPMEgLj1HAFx0U";
+    const tableName = "AI%20생성%20뉴스";
+    const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+    const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
+
+    const loading = document.getElementById("loading");
+    const contentDisplay = document.getElementById("content-display");
+    const metaDisplay = document.getElementById("meta-display");
+    const editorContainer = document.getElementById("editor-container");
+    const buttons = document.getElementById("buttons");
+    const editButtons = document.getElementById("edit-buttons");
+
+    let quill;
+    let htmlContent = "";
+    let currentContent = "";
+
+    if (!company || !postId) {
+      loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
+    } else {
+      fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?view=${encodeURIComponent(company)}&filterByFormula=post_id='${postId}'`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.style.display = "none";
+        if (!data.records.length) {
+          contentDisplay.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
+          return;
+        }
+
+        const record = data.records[0].fields;
+        htmlContent = record["내용(html)"] || "";
+        currentContent = htmlContent;
+
+        const companyName = record["기업명"] || "";
+        const title = record["콘텐츠 제목"] || "제목 없음";
+        const date = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
+        const tags = record["Hashtag"] || "";
+
+        metaDisplay.innerHTML = `
+          <div class="meta-company">${companyName}</div>
+          <div class="meta-title">${title}</div>
+          <div class="meta-date">${date}</div>
+        `;
+
+        contentDisplay.innerHTML = htmlContent + (tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "");
+
+        buttons.style.display = "block";
+        localStorage.setItem(`viewed_${company}_${postId}`, "true");
+
+        quill = new Quill("#editor-container", {
+          theme: "snow",
+          placeholder: "내용을 수정하세요...",
+          modules: {
+            toolbar: [
+              [{ header: [1, 2, false] }],
+              ["bold", "italic", "underline"],
+              ["link", "blockquote", "code-block"],
+              [{ list: "ordered" }, { list: "bullet" }]
+            ]
+          }
+        });
+
+        quill.clipboard.dangerouslyPasteHTML(htmlContent);
+      })
+      .catch(() => loading.innerText = "⚠️ 불러오기 오류 발생");
+    }
+
+    function toggleEditMode() {
+      editorContainer.style.display = "block";
+      contentDisplay.style.display = "none";
+      buttons.style.display = "none";
+      editButtons.style.display = "block";
+
+      quill.clipboard.dangerouslyPasteHTML(currentContent);
+    }
+
+    function applyEdit() {
+      currentContent = quill.root.innerHTML;
+      contentDisplay.innerHTML = currentContent;
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
+    }
+
+    function cancelEdit() {
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
+    }
+
+    function sendWebhook(action) {
+      const url = action === "approve" ? webhookApprove : webhookRetry;
+      const payload = {
+        post_id: postId,
+        company: company,
+        action: action
+      };
+      if (action === "approve") {
+        payload["edited_html"] = currentContent;
+      }
+
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(() => alert(`"${action}" 요청이 전송되었습니다.`))
+      .catch(() => alert("요청 전송 중 오류 발생"));
+    }
+
+    function goHome() {
+      window.location.href = `blog-list-page.html?company=${company}`;
+    }
+  </script>
+</body>
+</html>
