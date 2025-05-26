@@ -1,31 +1,38 @@
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const company = urlParams.get("company");
-  const postId = urlParams.get("post_id");
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+    const postId = urlParams.get("post_id");
 
-  const proxyEndpoint = "https://hyltest-airtable-news-content.mktg-95f.workers.dev/"; // 📌 변경된 프록시 URL
+    const proxyEndpoint = "https://hyltest-airtable-news-content.mktg-95f.workers.dev/";
 
-  const loading = document.getElementById("loading");
-  const contentDisplay = document.getElementById("content-display");
-  const metaDisplay = document.getElementById("meta-display");
-  const editorContainer = document.getElementById("editor-container");
-  const buttons = document.getElementById("buttons");
-  const editButtons = document.getElementById("edit-buttons");
+    const loading = document.getElementById("loading");
+    const contentDisplay = document.getElementById("content-display");
+    const metaDisplay = document.getElementById("meta-display");
+    const editorContainer = document.getElementById("editor-container");
+    const buttons = document.getElementById("buttons");
+    const editButtons = document.getElementById("edit-buttons");
 
-  let quill;
-  let htmlContent = "";
-  let currentContent = "";
+    let quill;
+    let htmlContent = "";
+    let currentContent = "";
 
-  if (!company || !postId) {
-    loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
-  } else {
-    // ✅ post_id만 전달하여 백엔드가 Airtable 요청 수행
+    if (!company || !postId) {
+      if (loading) {
+        loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
+      }
+      return;
+    }
+
     fetch(`${proxyEndpoint}?post_id=${encodeURIComponent(postId)}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
-        loading.style.display = "none";
+        if (loading) loading.style.display = "none";
         if (!data || !data.fields) {
-          contentDisplay.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
+          if (contentDisplay) contentDisplay.innerHTML = "<p>❌ 해당 콘텐츠를 찾을 수 없습니다.</p>";
           return;
         }
 
@@ -38,32 +45,42 @@
         const date = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
         const tags = record["Hashtag"] || "";
 
-        metaDisplay.innerHTML = `
-          <div class="meta-company">${companyName}</div>
-          <div class="meta-title">${title}</div>
-          <div class="meta-date">${date}</div>
-        `;
+        if (metaDisplay) {
+          metaDisplay.innerHTML = `
+            <div class="meta-company">${companyName}</div>
+            <div class="meta-title">${title}</div>
+            <div class="meta-date">${date}</div>
+          `;
+        }
 
-        contentDisplay.innerHTML = htmlContent + (tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "");
+        if (contentDisplay) {
+          contentDisplay.innerHTML = htmlContent + (tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "");
+        }
 
-        buttons.style.display = "block";
+        if (buttons) buttons.style.display = "block";
         localStorage.setItem(`viewed_${company}_${postId}`, "true");
 
-        quill = new Quill("#editor-container", {
-          theme: "snow",
-          placeholder: "내용을 수정하세요...",
-          modules: {
-            toolbar: [
-              [{ header: [1, 2, false] }],
-              ["bold", "italic", "underline"],
-              ["link", "blockquote", "code-block"],
-              [{ list: "ordered" }, { list: "bullet" }]
-            ]
-          }
-        });
+        // Quill 초기화 (editor-container가 존재할 때만)
+        if (editorContainer && typeof Quill !== "undefined") {
+          quill = new Quill("#editor-container", {
+            theme: "snow",
+            placeholder: "내용을 수정하세요...",
+            modules: {
+              toolbar: [
+                [{ header: [1, 2, false] }],
+                ["bold", "italic", "underline"],
+                ["link", "blockquote", "code-block"],
+                [{ list: "ordered" }, { list: "bullet" }]
+              ]
+            }
+          });
 
-        quill.clipboard.dangerouslyPasteHTML(htmlContent);
+          quill.clipboard.dangerouslyPasteHTML(htmlContent);
+        }
       })
-      .catch(() => loading.innerText = "⚠️ 불러오기 오류 발생");
-  }
+      .catch(error => {
+        console.error("Fetch error:", error);
+        if (loading) loading.innerText = `⚠️ 불러오기 오류 발생: ${error.message}`;
+      });
+  });
 </script>
