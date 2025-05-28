@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>📰 HYL 뉴스 콘텐츠 리스트</title>
+  <title>🔖 HYL 뉴스 콘텐츠 리스트</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -37,7 +37,7 @@
       background: #fff3cd;
       color: #856404;
     }
-    .status-변환중 {
+    .status-변화중 {
       background: #cce5ff;
       color: #004085;
     }
@@ -48,7 +48,7 @@
   </style>
 </head>
 <body>
-  <h2>📰 HYL 뉴스 콘텐츠 리스트</h2>
+  <h2>🔖 HYL 뉴스 콘텐츠 리스트</h2>
   <table id="post-table">
     <thead>
       <tr>
@@ -71,15 +71,14 @@
     if (!company) {
       tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
     } else {
-      // 🔐 API 키 숨긴 프록시 서버로 요청
-      fetch("https://hyltest-airtable-news.mktg-95f.workers.dev/")  // 🔄 AI 뉴스 전용 Cloudflare Worker endpoint
+      fetch("https://hyltest-airtable-news.mktg-95f.workers.dev/")
         .then(res => res.json())
         .then(records => {
           const filtered = records.filter(r => r.fields["기업명"] === company);
           tableBody.innerHTML = "";
 
           if (filtered.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4">📭 표시할 콘텐츠가 없습니다.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="4">📍 표시할 콘텐츠가 없습니다.</td></tr>`;
             return;
           }
 
@@ -87,7 +86,7 @@
             .sort((a, b) => {
               const aId = a.fields["post_id"] || "";
               const bId = b.fields["post_id"] || "";
-              return bId.localeCompare(aId); // post_id 기준 내림차순
+              return bId.localeCompare(aId);
             })
             .slice(0, 30)
             .forEach((record, index) => {
@@ -112,7 +111,7 @@
               const isViewed = localStorage.getItem(viewedKey) === "true";
               const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
 
-              const link = `index-news.html?company=${encodeURIComponent(company)}&post_id=${postId}`;
+              const link = `index-news.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
 
               const row = document.createElement("tr");
               row.innerHTML = `
