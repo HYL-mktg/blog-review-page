@@ -37,7 +37,7 @@
       background: #fff3cd;
       color: #856404;
     }
-    .status-변환중 {
+    .status-변화중 {
       background: #cce5ff;
       color: #004085;
     }
@@ -77,14 +77,14 @@
 
       fetch(url)
         .then(res => {
-          if (!res.ok) throw new Error("프록시 응답 실패");
+          if (!res.ok) throw new Error("프로키 응답 실패");
           return res.json();
         })
         .then(data => {
           tableBody.innerHTML = "";
 
           if (!data.records || data.records.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4">📭 표시할 콘텐츠가 없습니다.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="4">📍 표시할 콘텐츠가 없습니다.</td></tr>`;
             return;
           }
 
@@ -108,7 +108,7 @@
             const isViewed = localStorage.getItem(viewedKey) === "true";
             const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
 
-            const link = `index.html?company=${encodeURIComponent(company)}&post_id=${postId}`;
+            const link = `index.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
 
             const row = document.createElement("tr");
             row.innerHTML = `
