@@ -69,7 +69,7 @@
 </head>
 <body>
   <div id="meta-display"></div>
-  <div id="loading">⏳ 불러오는 중입니다...</div>
+  <div id="loading">⏳ 블로오는 중입니다...</div>
   <div id="content-display"></div>
   <div id="editor-container"></div>
 
@@ -109,9 +109,9 @@
     let currentContent = "";
 
     if (!company || !postId) {
-      loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 누락되었습니다.</span>";
+      loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 불장했습니다.</span>";
     } else {
-      fetch(`${proxyEndpoint}?post_id=${encodeURIComponent(postId)}`)
+      fetch(`${proxyEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`)
         .then(res => {
           if (!res.ok) throw new Error("불러오기 실패");
           return res.json();
@@ -160,7 +160,7 @@
         })
         .catch(err => {
           console.error(err);
-          loading.innerText = "⚠️ 콘텐츠 불러오기 중 오류가 발생했습니다.";
+          loading.innerText = "⚠️ 콘텐츠 블로오기 중 오류가 발생했습니다.";
         });
     }
 
