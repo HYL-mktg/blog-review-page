@@ -137,7 +137,12 @@
             <div class="meta-date">${date}</div>
           `;
 
-          contentDisplay.innerHTML = htmlContent + (tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "");
+          contentDisplay.innerHTML = `
+            <div style="max-width: 900px; margin: 0 auto;">
+              ${htmlContent}
+              ${tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : ""}
+            </div>
+          `;
 
           buttons.style.display = "block";
           localStorage.setItem(`viewed_${company}_${postId}`, "true");
@@ -172,8 +177,15 @@
     }
 
     function applyEdit() {
-      currentContent = quill.root.innerHTML;
-      contentDisplay.innerHTML = currentContent;
+      const edited = quill.root.innerHTML;
+      currentContent = edited;
+
+      contentDisplay.innerHTML = `
+        <div style="max-width: 900px; margin: 0 auto;">
+          ${edited}
+        </div>
+      `;
+
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
@@ -189,13 +201,22 @@
 
     function sendWebhook(action) {
       const url = action === "approve" ? webhookApprove : webhookRetry;
-      const payload = {
+
+      let payload = {
         post_id: postId,
         company: company,
         action: action
       };
+
       if (action === "approve") {
-        payload["edited_html"] = currentContent;
+        let toSend = currentContent;
+
+        // max-width wrapper가 없는 경우 자동 보완
+        if (!toSend.includes("max-width: 900px")) {
+          toSend = `<div style="max-width: 900px; margin: 0 auto;">${toSend}</div>`;
+        }
+
+        payload["edited_html"] = toSend;
       }
 
       fetch(url, {
