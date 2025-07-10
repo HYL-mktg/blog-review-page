@@ -68,6 +68,21 @@
     .submit-button:hover {
       background-color: #005fa3;
     }
+
+    .home-button {
+      background-color: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .home-button:hover {
+      background-color: #ccc;
+    }
   </style>
 </head>
 <body>
@@ -103,6 +118,8 @@
     <button class="submit-button" onclick="submitPayment()">💳 충전하기</button>
   </div>
 
+  <button class="home-button" onclick="goHome()">🏠 홈으로 돌아가기</button>
+
   <script>
     async function submitPayment() {
       const id = document.getElementById("nickname").value.trim();
@@ -132,6 +149,10 @@
       } catch (error) {
         alert("⚠️ 네트워크 오류: " + error.message);
       }
+    }
+
+    function goHome() {
+      window.location.href = "home.html"; // 홈 경로가 다를 경우 수정
     }
   </script>
 </body>
