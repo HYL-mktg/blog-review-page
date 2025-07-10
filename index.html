@@ -53,6 +53,14 @@
       margin-top: 6px;
       margin-bottom: 4px;
     }
+    #title-input {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 6px;
+      margin-bottom: 4px;
+      width: 100%;
+      display: none;
+    }
     .meta-date {
       font-size: 13px;
       color: #777;
@@ -68,7 +76,13 @@
   </style>
 </head>
 <body>
-  <div id="meta-display"></div>
+  <div id="meta-display">
+    <div class="meta-company" id="meta-company"></div>
+    <div class="meta-title" id="meta-title"></div>
+    <input type="text" id="title-input" />
+    <div class="meta-date" id="meta-date"></div>
+  </div>
+
   <div id="loading">⏳ 불러오는 중입니다...</div>
   <div id="content-display"></div>
   <div id="editor-container"></div>
@@ -83,7 +97,10 @@
   <div id="edit-buttons" class="edit-buttons">
     <button onclick="applyEdit()">📝 수정 완료</button>
     <button onclick="cancelEdit()">❌ 취소</button>
+    <button onclick="triggerImageUpload()">🖼️ 이미지 추가</button>
   </div>
+
+  <input type="file" id="image-upload" accept="image/*" style="display:none;" />
 
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <script>
@@ -97,10 +114,14 @@
 
     const loading = document.getElementById("loading");
     const contentDisplay = document.getElementById("content-display");
-    const metaDisplay = document.getElementById("meta-display");
     const editorContainer = document.getElementById("editor-container");
     const buttons = document.getElementById("buttons");
     const editButtons = document.getElementById("edit-buttons");
+
+    const metaTitle = document.getElementById("meta-title");
+    const titleInput = document.getElementById("title-input");
+    const metaCompany = document.getElementById("meta-company");
+    const metaDate = document.getElementById("meta-date");
 
     let quill;
     let htmlContent = "";
@@ -131,11 +152,10 @@
           const date = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
           const tags = record["Hashtag"] || "";
 
-          metaDisplay.innerHTML = `
-            <div class="meta-company">${companyName}</div>
-            <div class="meta-title">${title}</div>
-            <div class="meta-date">${date}</div>
-          `;
+          metaCompany.innerText = companyName;
+          metaTitle.innerText = title;
+          titleInput.value = title;
+          metaDate.innerText = date;
 
           contentDisplay.innerHTML = `
             <div style="max-width: 900px; margin: 0 auto;">
@@ -173,16 +193,19 @@
       contentDisplay.style.display = "none";
       buttons.style.display = "none";
       editButtons.style.display = "block";
+      metaTitle.style.display = "none";
+      titleInput.style.display = "block";
       quill.clipboard.dangerouslyPasteHTML(currentContent);
     }
 
     function applyEdit() {
-      const edited = quill.root.innerHTML;
-      currentContent = edited;
+      currentContent = quill.root.innerHTML;
+      const newTitle = titleInput.value || "제목 없음";
+      metaTitle.innerText = newTitle;
 
       contentDisplay.innerHTML = `
         <div style="max-width: 900px; margin: 0 auto;">
-          ${edited}
+          ${currentContent}
         </div>
       `;
 
@@ -190,6 +213,8 @@
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
       editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
     }
 
     function cancelEdit() {
@@ -197,26 +222,26 @@
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
       editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
     }
 
     function sendWebhook(action) {
       const url = action === "approve" ? webhookApprove : webhookRetry;
-
-      let payload = {
+      const payload = {
         post_id: postId,
         company: company,
         action: action
       };
 
       if (action === "approve") {
-        let toSend = currentContent;
+        const title = titleInput.value || "제목 없음";
+        const wrappedContent = currentContent.includes("max-width: 900px")
+          ? currentContent
+          : `<div style=\"max-width: 900px; margin: 0 auto;\">${currentContent}</div>`;
 
-        // max-width wrapper가 없는 경우 자동 보완
-        if (!toSend.includes("max-width: 900px")) {
-          toSend = `<div style="max-width: 900px; margin: 0 auto;">${toSend}</div>`;
-        }
-
-        payload["edited_html"] = toSend;
+        payload["edited_title"] = title;
+        payload["edited_html"] = wrappedContent;
       }
 
       fetch(url, {
@@ -231,6 +256,45 @@
     function goHome() {
       window.location.href = `blog-list-page.html?company=${company}`;
     }
+
+    function triggerImageUpload() {
+      document.getElementById("image-upload").click();
+    }
+
+    document.getElementById("image-upload").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "mktg_ai");
+
+      fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
+        method: "POST",
+        body: formData
+      })
+        .then(res => res.json())
+        .then(result => {
+          const url = result.secure_url;
+          const alt = file.name.split(".")[0];
+          const html = `<p style=\"text-align: center;\"><img src=\"${url}\" alt=\"${alt}\" class=\"responsive-image\" width=\"800\" style=\"max-width:100%; height:auto;\" /></p>`;
+          const range = quill.getSelection(true);
+          quill.clipboard.dangerouslyPasteHTML(range.index, html);
+        })
+        .catch(err => {
+          console.error("이미지 업로드 실패:", err);
+          alert("이미지 업로드에 실패했습니다.");
+        });
+    });
+
+    document.addEventListener("click", function (e) {
+      if (e.target.tagName === "IMG") {
+        if (confirm("이 이미지를 삭제하시겠습니까?")) {
+          const parent = e.target.closest("p") || e.target;
+          parent.remove();
+        }
+      }
+    });
   </script>
 </body>
 </html>
