@@ -221,21 +221,21 @@
           post_id: postId,
           company: company,
           action: action
-    };
+        };
 
-  if (action === "approve") {
-    payload["edited_title"] = titleInput.value || "제목 없음";
-    payload["edited_html"] = currentContent;  // 제목 제외한 순수 본문 HTML만
-  }
+        if (action === "approve") {
+          payload["edited_title"] = titleInput.value || "제목 없음";
+          payload["edited_html"] = currentContent;  // 제목 제외한 순수 본문 HTML만
+        }
 
-  fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-    .then(() => alert(`"${action}" 요청이 전송되었습니다.`))
-    .catch(() => alert("요청 전송 중 오류 발생"));
-}
+          fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          })
+            .then(() => alert(`"${action}" 요청이 전송되었습니다.`))
+            .catch(() => alert("요청 전송 중 오류 발생"));
+    }
 
     function goHome() {
       window.location.href = `blog-list-page-news.html?company=${company}`;
