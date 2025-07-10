@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>💳 HY3D 크레딧 충전</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f7f9fb;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 16px;
+      color: #555;
+      max-width: 500px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .submit-button {
+      background-color: #007acc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .submit-button:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+<body>
+  <h1>💳 HY3D 크레딧 충전</h1>
+  <p>HY3D 서비스는 크레딧 기반으로 사용됩니다. <strong>10크레딧 = 1,000원</strong>입니다.<br>원하시는 금액만큼 크레딧을 충전해 주세요.</p>
+
+  <div class="card">
+    <div class="input-group">
+      <label for="name">이름</label>
+      <input type="text" id="name" placeholder="예: 홍길동" required>
+    </div>
+
+    <div class="input-group">
+      <label for="email">이메일</label>
+      <input type="email" id="email" placeholder="예: user@example.com" required>
+    </div>
+
+    <div class="input-group">
+      <label for="credits">충전할 크레딧</label>
+      <select id="credits">
+        <option value="10">10 크레딧 - ₩1,000</option>
+        <option value="30">30 크레딧 - ₩3,000</option>
+        <option value="50">50 크레딧 - ₩5,000</option>
+        <option value="100">100 크레딧 - ₩10,000</option>
+      </select>
+    </div>
+
+    <button class="submit-button" onclick="submitPayment()">💳 충전하기</button>
+  </div>
+
+  <script>
+    function submitPayment() {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const credits = document.getElementById("credits").value;
+      const amount = credits * 100;
+
+      if (!name || !email) {
+        alert("이름과 이메일을 모두 입력해 주세요.");
+        return;
+      }
+
+      alert(`✅ ${name}님, ${credits}크레딧(₩${amount.toLocaleString()}) 충전이 완료되었습니다.\n(시범용 페이지입니다)`);
+    }
+  </script>
+</body>
+</html>
