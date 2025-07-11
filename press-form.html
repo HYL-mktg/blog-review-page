@@ -80,18 +80,29 @@
       const password = document.getElementById('password').value;
       const title = document.getElementById('title').value.trim();
       const highlight = document.getElementById('highlight').value.trim();
-      const image = document.getElementById('imageUrl').value.trim();
+      const imageUrl = document.getElementById('imageUrl').value.trim();
 
-      if (!id || !email || !password || !title || !highlight || !image) {
+      if (!id || !email || !password || !title || !highlight || !imageUrl) {
         alert('모든 항목을 입력해 주세요.');
         return;
       }
+
+      const payload = {
+        id,
+        email,
+        password,
+        title,
+        highlight,
+        image: [
+          { url: imageUrl } // ✅ Airtable Attachment 형식
+        ]
+      };
 
       try {
         const response = await fetch('https://press-submit.mktg-95f.workers.dev/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, email, password, title, highlight, image })
+          body: JSON.stringify(payload)
         });
 
         if (response.ok) {
