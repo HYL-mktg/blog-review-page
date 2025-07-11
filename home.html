@@ -66,7 +66,6 @@
 </head>
 <body>
 
-  <!-- 우상단 결제 버튼 -->
   <header>
     <button class="payment-button" onclick="location.href='https://hyl-mktg.github.io/blog-review-page/payment.html'">💳 결제</button>
   </header>
@@ -80,6 +79,15 @@
   </div>
 
   <script>
+    // 이미 로그인 되어 있으면 자동 이동
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // 로그인 유지
+        location.href = 'index-company.html';
+      }
+    });
+
     async function loginWithAccount() {
       const id = prompt("👤 아이디를 입력하세요:");
       if (!id) return;
@@ -95,6 +103,9 @@
         });
 
         if (response.status === 200) {
+          const result = await response.json();
+          localStorage.setItem("token", result.token); // 예: { token: "abc123" }
+          localStorage.setItem("id", id); // 사용자 아이디 저장
           location.href = "index-company.html";
         } else if (response.status === 401) {
           alert("❌ 아이디 또는 비밀번호가 잘못되었습니다.");
