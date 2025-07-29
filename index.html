@@ -279,23 +279,51 @@
       formData.append("file", file);
       formData.append("upload_preset", "mktg_ai");
 
-      fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
-        method: "POST",
-        body: formData
-      })
-        .then(res => res.json())
-        .then(result => {
-          const url = result.secure_url;
-          const alt = file.name.split(".")[0];
-          const html = `<p style="text-align: center;"><img src="${url}" alt="${alt}" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`;
-          const range = quill.getSelection(true);
-          quill.clipboard.dangerouslyPasteHTML(range.index, html);
+document.getElementById("image-upload").addEventListener("change", function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff"; // PNG의 투명 배경 제거
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob(function (blob) {
+        const convertedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" });
+        const formData = new FormData();
+        formData.append("file", convertedFile);
+        formData.append("upload_preset", "mktg_ai");
+
+        fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
+          method: "POST",
+          body: formData
         })
-        .catch(err => {
-          console.error("이미지 업로드 실패:", err);
-          alert("이미지 업로드에 실패했습니다.");
-        });
-    });
+          .then(res => res.json())
+          .then(result => {
+            const url = result.secure_url;
+            const alt = convertedFile.name.split(".")[0];
+            const html = `<p style="text-align: center;"><img src="${url}" alt="${alt}" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`;
+            const range = quill.getSelection(true);
+            quill.clipboard.dangerouslyPasteHTML(range.index, html);
+          })
+          .catch(err => {
+            console.error("이미지 업로드 실패:", err);
+            alert("이미지 업로드에 실패했습니다.");
+          });
+      }, "image/jpeg", 0.92);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
 
     function uploadBase64ToCloudinary(base64Data) {
       const blob = base64ToBlob(base64Data);
