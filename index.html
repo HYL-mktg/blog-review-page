@@ -271,14 +271,6 @@
       document.getElementById("image-upload").click();
     }
 
-    document.getElementById("image-upload").addEventListener("change", function () {
-      const file = this.files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "mktg_ai");
-
 document.getElementById("image-upload").addEventListener("change", function () {
   const file = this.files[0];
   if (!file) return;
