@@ -248,7 +248,7 @@
                     // Airtable Record ID를 저장하여 후속 Webhook에 사용
                     airtableRecordId = data.id; 
                     
-                    htmlContent = record["기사 본문(html)"] || "";
+                    htmlContent = record["본문 html"] || "";
                     currentContent = htmlContent;
 
                     // 사용자 요청에 따라 '기업명' 필드를 참조합니다.
