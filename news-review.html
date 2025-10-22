@@ -175,10 +175,10 @@
         const company = urlParams.get("company"); // 언론사 이름 등 식별자
         const postId = urlParams.get("post_id"); // 기사 ID
 
-        // API 및 웹훅 엔드포인트 설정 (뉴스 기사 로직에 맞게 변경 필요)
-        const proxyEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/"; 
-        const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl"; // 실제 뉴스 시스템 웹훅으로 변경 필요
-        const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15"; // 실제 뉴스 시스템 웹훅으로 변경 필요
+        // CORS 오류 해결을 위해 API Endpoint를 분리하고 프록시를 사용합니다.
+        const apiEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/"; 
+        const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+        const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
 
         // DOM 요소
         const loading = document.getElementById("loading");
@@ -191,7 +191,7 @@
         const titleInput = document.getElementById("title-input");
         const metaCompany = document.getElementById("meta-company");
         const metaDate = document.getElementById("meta-date");
-        const metaStatus = document.getElementById("meta-status"); // NEW: 상태 표시 요소
+        const metaStatus = document.getElementById("meta-status"); 
 
         let quill;
         let htmlContent = "";
@@ -200,10 +200,20 @@
         if (!company || !postId) {
             loading.innerHTML = "<span style='color:red;'>❌ URL에 식별자(company/post_id)가 누락되었습니다.</span>";
         } else {
-            // Airtable 프록시 데이터 불러오기
-            fetch(`${proxyEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`)
+            // ----------------------------------------------------------------------------------
+            // ✅ CORS Proxy를 이용한 데이터 불러오기 (CORS 오류 해결)
+            // ----------------------------------------------------------------------------------
+            const targetUrl = `${apiEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            
+            console.log("Fetching via proxy URL:", proxyUrl);
+
+            fetch(proxyUrl)
                 .then(res => {
-                    if (!res.ok) throw new Error("프록시 응답 오류: " + res.statusText);
+                    if (!res.ok) {
+                        // 프록시 오류나 Cloudflare 응답 오류가 발생하면 에러 처리
+                        return res.text().then(text => { throw new Error("프록시/API 응답 오류: " + res.statusText + " - " + text.substring(0, 100)); });
+                    }
                     return res.json();
                 })
                 .then(data => {
@@ -216,24 +226,25 @@
                     }
 
                     // ----------------------------------------------------
-                    // ✅ Airtable 필드명 변경 적용 및 '기사 상태' 추가
+                    // ✅ Airtable 필드 값 설정
                     // ----------------------------------------------------
                     htmlContent = record["기사 본문(html)"] || "";
                     currentContent = htmlContent;
 
-                    const companyName = record["기업"] || ""; // '언론사' 대신 '기업' 사용
+                    const companyName = record["기업"] || "";
                     const title = record["기사 제목"] || "제목 없음";
-                    const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : ""; // '배포 예정일' 대신 '송출 희망일' 사용
+                    const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : "";
                     const keywords = record["핵심 키워드"] || ""; 
-                    const status = record["기사 상태"] || "상태 정보 없음"; // NEW: '기사 상태' 필드 값 가져오기
+                    const status = record["기사 상태"] || "상태 정보 없음";
 
                     metaCompany.innerText = companyName;
                     metaTitle.innerText = title;
                     titleInput.value = title;
                     metaDate.innerText = date ? `송출 희망일: ${date}` : '송출 희망일 미정';
                     
-                    // NEW LOGIC: 상태 표시 및 스타일 적용
+                    // 상태 표시 및 스타일 적용
                     metaStatus.innerText = `기사 상태: ${status}`;
+                    metaStatus.className = "meta-status"; // 클래스 초기화
                     if (status.includes("대기")) {
                         metaStatus.classList.add("status-pending");
                     } else if (status.includes("승인")) {
@@ -262,16 +273,15 @@
                                 ["bold", "italic", "underline"],
                                 ["link", "blockquote", "code-block"],
                                 [{ list: "ordered" }, { list: "bullet" }],
-                                ["image"] // Quill 툴바에 이미지 버튼 추가
+                                ["image"] 
                             ]
                         }
                     });
 
                     // Quill 에디터에 이미지 핸들러 연결
                     quill.getModule('toolbar').addHandler('image', function() {
-                        triggerImageUpload(); // 이미지 버튼 클릭 시 파일 선택기 열기
+                        triggerImageUpload(); 
                     });
-
 
                     // base64 이미지 붙여넣기 차단 + 업로드
                     quill.getModule('clipboard').addMatcher('img', function (node, delta) {
@@ -279,7 +289,7 @@
                         if (imageSrc && imageSrc.startsWith('data:image')) {
                             console.log("Base64 이미지 감지. Cloudinary 업로드 시도.");
                             uploadBase64ToCloudinary(imageSrc);
-                            return new Delta(); // base64 삽입 차단
+                            return new Delta();
                         }
                         return delta;
                     });
@@ -288,7 +298,11 @@
                 })
                 .catch(error => {
                     console.error("⚠️ 콘텐츠 불러오기 오류:", error);
-                    loading.innerText = `⚠️ 콘텐츠 불러오기 오류: ${error.message}`;
+                    // CORS 오류 발생 시 사용자에게 우회 방법을 알려줌
+                    loading.innerHTML = `
+                        <p style="color:red; font-weight:bold;">❌ 데이터 불러오기 오류 발생: ${error.message}</p>
+                        <p style="color:#777; font-size:14px;">(Cloudflare API에서 CORS 정책 오류가 발생한 것으로 보입니다. 현재 CORS 프록시를 통해 우회 시도 중입니다.)</p>
+                    `;
                 });
         }
 
@@ -433,7 +447,6 @@
                                 // Quill 에디터에 이미지 삽입
                                 const range = quill.getSelection(true);
                                 quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
-                                // quill.clipboard.dangerouslyPasteHTML(range.index, `<p style="text-align: center;"><img src="${url}" alt="${alt}" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`);
                                 
                                 // 파일 선택기 초기화 (같은 파일 재선택 가능하도록)
                                 document.getElementById("image-upload").value = '';
@@ -475,7 +488,6 @@
                     console.log("Cloudinary (Base64) 업로드 성공, URL:", url);
                     const range = quill.getSelection(true);
                     quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
-                    // quill.clipboard.dangerouslyPasteHTML(range.index, `<p style="text-align: center;"><img src="${url}" alt="붙여넣은 이미지" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`);
                 })
                 .catch(err => {
                     console.error("❌ Cloudinary (Base64) 업로드 실패:", err);
