@@ -1,664 +1,190 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 뉴스 콘텐츠 검수 및 배포 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <style>
-        /* Tailwind CSS 대신 기본 CSS를 사용하여 심미성을 높입니다. */
-        :root {
-            --primary-color: #159CCA;
-            --secondary-color: #008f4c;
-            --bg-color: #f4f7f9;
-        }
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: var(--bg-color);
-            color: #333;
-        }
-        #editor-container, #content-display, #meta-display {
-            max-width: 900px;
-            margin: 20px auto;
-            text-align: left;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            background: white;
-            padding: 20px;
-        }
-        #editor-container {
-            height: 400px;
-            display: none;
-            padding: 0;
-            box-shadow: none;
-        }
-        .quill {
-            border-radius: 0 0 12px 12px;
-            overflow: hidden;
-        }
-        button {
-            margin: 8px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            font-weight: 600;
-        }
-        #loading {
-            font-size: 18px;
-            color: #888;
-            margin-top: 20px;
-        }
-        #content-display {
-            min-height: 400px;
-            background: #ffffff;
-            padding: 30px;
-            border: 1px solid #e0e0e0;
-        }
-        .edit-buttons {
-            display: none;
-        }
-        #meta-display {
-            padding: 30px 20px 10px 20px;
-            background-color: #fff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .meta-company {
-            font-size: 16px;
-            font-weight: 500;
-            color: #777;
-            margin-bottom: 5px;
-        }
-        .meta-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #111;
-            margin-bottom: 4px;
-        }
-        #title-input {
-            font-size: 24px;
-            font-weight: 700;
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            display: none;
-            box-sizing: border-box;
-        }
-        .meta-date {
-            font-size: 14px;
-            color: #999;
-            margin-bottom: 16px;
-        }
-        .meta-status { /* NEW STYLE: 기사 상태 표시 */
-            font-size: 18px;
-            font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 6px;
-            display: inline-block;
-            margin-bottom: 15px;
-            margin-top: 10px;
-        }
-        /* NEW STYLE: 상태별 색상 */
-        .status-pending {
-            background-color: #fce38a; /* 대기: 노란색 */
-            color: #333;
-        }
-        .status-approved {
-            background-color: var(--secondary-color); /* 승인: 초록색 */
-            color: white;
-        }
-        .status-retry {
-            background-color: #e74c3c; /* 수정 요청: 빨간색 */
-            color: white;
-        }
-        .meta-tags {
-            font-size: 14px;
-            color: var(--primary-color);
-            margin-top: 30px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }
-
-        /* 버튼 스타일 */
-        #buttons button:nth-child(2) { /* 승인 버튼 */
-            background-color: var(--secondary-color);
-            color: white;
-        }
-        #buttons button:nth-child(3) { /* 승인 취소 버튼 */
-            background-color: #e74c3c;
-            color: white;
-        }
-        #buttons button:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        /* 커스텀 모달 스타일 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        .modal-buttons button {
-            margin: 5px;
-            min-width: 100px;
-        }
-        .modal-buttons .confirm-btn {
-            background-color: var(--secondary-color);
-            color: white;
-        }
-        .modal-buttons .cancel-btn {
-            background-color: #ccc;
-            color: #333;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI 뉴스 콘텐츠 검수 및 배포 시스템</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet"/>
+  <style>
+    :root { --primary-color:#159CCA; --secondary-color:#008f4c; --bg-color:#f4f7f9; }
+    body{font-family:'Inter','Segoe UI',sans-serif;text-align:center;padding:20px;background-color:var(--bg-color);color:#333;}
+    #editor-container,#content-display,#meta-display{max-width:900px;margin:20px auto;text-align:left;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.05);background:#fff;padding:20px;}
+    #editor-container{height:400px;display:none;padding:0;box-shadow:none;}
+    .quill{border-radius:0 0 12px 12px;overflow:hidden;}
+    button{margin:8px;padding:10px 20px;font-size:16px;cursor:pointer;border:none;border-radius:8px;transition:all .2s ease;font-weight:600;}
+    #loading{font-size:18px;color:#888;margin-top:20px;}
+    #content-display{min-height:400px;background:#fff;padding:30px;border:1px solid #e0e0e0;}
+    .edit-buttons{display:none;}
+    #meta-display{padding:30px 20px 10px 20px;background-color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.05);}
+    .meta-company{font-size:16px;font-weight:500;color:#777;margin-bottom:5px;}
+    .meta-title{font-size:28px;font-weight:700;color:#111;margin-bottom:4px;}
+    #title-input{font-size:24px;font-weight:700;width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;display:none;box-sizing:border-box;}
+    .meta-date{font-size:14px;color:#999;margin-bottom:16px;}
+    .meta-status{font-size:18px;font-weight:700;padding:5px 10px;border-radius:6px;display:inline-block;margin-bottom:15px;margin-top:10px;}
+    .status-pending{background-color:#fce38a;color:#333;}
+    .status-approved{background-color:var(--secondary-color);color:#fff;}
+    .status-retry{background-color:#e74c3c;color:#fff;}
+    .meta-tags{font-size:14px;color:var(--primary-color);margin-top:30px;border-top:1px solid #ddd;padding-top:10px;}
+    #buttons button:nth-child(2){background-color:var(--secondary-color);color:#fff;}
+    #buttons button:nth-child(3){background-color:#e74c3c;color:#fff;}
+    #buttons button:hover{opacity:.9;transform:translateY(-1px);}
+    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;z-index:1000;}
+    .modal-content{background:#fff;padding:30px;border-radius:10px;max-width:400px;text-align:center;box-shadow:0 5px 15px rgba(0,0,0,.3);}
+    .modal-buttons button{margin:5px;min-width:100px;}
+    .modal-buttons .confirm-btn{background-color:var(--secondary-color);color:#fff;}
+    .modal-buttons .cancel-btn{background-color:#ccc;color:#333;}
+    .hidden{display:none;}
+  </style>
 </head>
 <body>
-    <h1>AI 뉴스 콘텐츠 검수</h1>
-    <div id="meta-display">
-        <!-- '기업명' 필드에 저장된 정보를 표시 -->
-        <div class="meta-company" id="meta-company"></div>
-        <div class="meta-title" id="meta-title"></div>
-        <input type="text" id="title-input" />
-        <div class="meta-date" id="meta-date"></div>
-        <div class="meta-status" id="meta-status"></div>
+  <h1>AI 뉴스 콘텐츠 검수</h1>
+
+  <div id="meta-display">
+    <div class="meta-company" id="meta-company"></div>
+    <div class="meta-title" id="meta-title"></div>
+    <input type="text" id="title-input"/>
+    <div class="meta-date" id="meta-date"></div>
+    <div class="meta-status" id="meta-status"></div>
+  </div>
+
+  <div id="loading">⏳ 불러오는 중입니다...</div>
+  <div id="content-display"></div>
+  <div id="editor-container"></div>
+
+  <div id="buttons" style="display:none;">
+    <button onclick="toggleEditMode()">✏️ 수정</button>
+    <button onclick="showConfirmation('approve')">✅ 최종 승인 및 배포</button>
+    <button onclick="showConfirmation('retry')">🔄 수정 요청</button>
+  </div>
+
+  <div id="edit-buttons" class="edit-buttons">
+    <button onclick="applyEdit()">📝 수정 완료</button>
+    <button onclick="cancelEdit()">❌ 취소</button>
+    <button onclick="triggerImageUpload()">🖼️ 이미지 추가</button>
+  </div>
+
+  <input type="file" id="image-upload" accept="image/*" style="display:none;"/>
+
+  <div id="custom-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <p id="modal-message" class="mb-4 text-lg"></p>
+      <div id="modal-buttons" class="modal-buttons"></div>
     </div>
+  </div>
 
-    <div id="loading">⏳ 불러오는 중입니다...</div>
-    <div id="content-display"></div>
-    <div id="editor-container"></div>
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+    // ✅ 유틸 함수
+    function normalizeKey(str){
+      if(!str) return '';
+      return str.normalize('NFC')
+        .replace(/\u00A0/g,' ')
+        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g,'-')
+        .replace(/[ \t\u2000-\u200B\u3000]+/g,' ')
+        .trim();
+    }
+    function encodeOnce(s){return encodeURIComponent(s);}
+    const collapse=s=>s.replace(/-+/g,'-').replace(/\s+/g,' ');
+    const stripWeird=s=>s.replace(/[^\w\s\-가-힣]/g,'').replace(/\s+/g,' ').trim();
 
-    <div id="buttons" style="display:none;">
-        <button onclick="toggleEditMode()">✏️ 수정</button>
-        <!-- sendWebhook 호출 시 action 인자를 명시하여 사용 -->
-        <button onclick="showConfirmation('approve')">✅ 최종 승인 및 배포</button>
-        <button onclick="showConfirmation('retry')">🔄 수정 요청</button>
-    </div>
+    // 모달
+    const customModal=document.getElementById("custom-modal");
+    const modalMessage=document.getElementById("modal-message");
+    const modalButtons=document.getElementById("modal-buttons");
+    function showModal(msg,isConfirm=false,onConfirm=null){
+      modalMessage.innerText=msg;
+      modalButtons.innerHTML='';
+      customModal.classList.remove('hidden');
+      if(isConfirm&&onConfirm){
+        const ok=document.createElement('button');ok.innerText='확인';ok.className='confirm-btn';
+        ok.onclick=()=>{customModal.classList.add('hidden');onConfirm();};
+        const cancel=document.createElement('button');cancel.innerText='취소';cancel.className='cancel-btn';
+        cancel.onclick=()=>customModal.classList.add('hidden');
+        modalButtons.append(ok,cancel);
+      }else{
+        const close=document.createElement('button');close.innerText='닫기';close.className='cancel-btn';
+        close.onclick=()=>customModal.classList.add('hidden');
+        modalButtons.appendChild(close);
+      }
+    }
+    function showConfirmation(a){showModal(`정말 "${a==='approve'?'승인 및 배포':'수정 요청'}" 하시겠습니까?`,true,()=>sendWebhook(a));}
 
-    <div id="edit-buttons" class="edit-buttons">
-        <button onclick="applyEdit()">📝 수정 완료</button>
-        <button onclick="cancelEdit()">❌ 취소</button>
-        <button onclick="triggerImageUpload()">🖼️ 이미지 추가</button>
-    </div>
+    // URL 파라미터 정규화
+    const urlParams=new URLSearchParams(window.location.search);
+    const company=normalizeKey(urlParams.get("company")||"");
+    const postId=normalizeKey(urlParams.get("post_id")||"");
+    const apiEndpoint="https://news-review-system.mktg-95f.workers.dev/";
+    const webhookApprove="https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+    const webhookRetry="https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
 
-    <input type="file" id="image-upload" accept="image/*" style="display:none;" />
+    const loading=document.getElementById("loading");
+    const contentDisplay=document.getElementById("content-display");
+    const editorContainer=document.getElementById("editor-container");
+    const buttons=document.getElementById("buttons");
+    const editButtons=document.getElementById("edit-buttons");
+    const metaTitle=document.getElementById("meta-title");
+    const titleInput=document.getElementById("title-input");
+    const metaCompany=document.getElementById("meta-company");
+    const metaDate=document.getElementById("meta-date");
+    const metaStatus=document.getElementById("meta-status");
+    let quill,htmlContent="",currentContent="",airtableRecordId="";
 
-    <!-- 커스텀 모달 UI -->
-    <div id="custom-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <p id="modal-message" class="mb-4 text-lg"></p>
-            <div id="modal-buttons" class="modal-buttons">
-                <!-- 버튼은 JS에서 동적으로 추가됨 -->
-            </div>
-        </div>
-    </div>
+    async function fetchRecordWithFallback(baseEndpoint,company,postId){
+      const tries=[
+        {c:company,p:postId},
+        {c:collapse(company),p:collapse(postId)},
+        {c:stripWeird(company),p:stripWeird(postId)}
+      ];
+      let lastErr="";
+      for(const t of tries){
+        const target=`${baseEndpoint}?company=${encodeOnce(t.c)}&post_id=${encodeOnce(t.p)}`;
+        const proxy=`https://corsproxy.io/?${encodeURIComponent(target)}`;
+        try{
+          const res=await fetch(proxy);
+          if(!res.ok){lastErr=await res.text();continue;}
+          const data=await res.json();
+          if(data&&data.fields)return{data,urlUsed:target,proxyUsed:proxy};
+        }catch(e){lastErr=e.message;}
+      }
+      throw new Error(`No record found (${lastErr})`);
+    }
 
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    <script>
-        // URL 매개변수
-        const urlParams = new URLSearchParams(window.location.search);
-        const company = urlParams.get("company"); // 언론사 이름 등 식별자
-        const postId = urlParams.get("post_id"); // 기사 ID (Airtable에서 post_id 필드와 매칭될 것으로 예상)
+    (async()=>{
+      if(!company||!postId){
+        loading.innerHTML="<span style='color:red;'>❌ URL 파라미터 누락</span>";return;
+      }
+      try{
+        const {data,urlUsed,proxyUsed}=await fetchRecordWithFallback(apiEndpoint,company,postId);
+        loading.style.display="none";
+        const r=data.fields;airtableRecordId=data.id;
+        htmlContent=r["본문 html"]||"";currentContent=htmlContent;
+        metaCompany.innerText=r["기업명"]||"";metaTitle.innerText=r["기사 제목"]||"제목 없음";
+        titleInput.value=r["기사 제목"]||"";metaDate.innerText=r["송출 희망일"]?`송출 희망일: ${new Date(r["송출 희망일"]).toLocaleDateString("ko-KR")}`:"송출 희망일 미정";
+        const s=r["기사 상태"]||"상태 정보 없음";
+        metaStatus.innerText=`기사 상태: ${s}`;metaStatus.className="meta-status";
+        if(s.includes("대기"))metaStatus.classList.add("status-pending");
+        else if(s.includes("승인"))metaStatus.classList.add("status-approved");
+        else if(s.includes("수정"))metaStatus.classList.add("status-retry");
+        const kw=r["핵심 키워드"]||"";
+        contentDisplay.innerHTML=`<div style="max-width:900px;margin:0 auto;">${htmlContent}${kw?`<div class="meta-tags">#${kw.replaceAll(",", " #")}</div>`:""}</div>`;
+        buttons.style.display="block";
+        quill=new Quill("#editor-container",{theme:"snow",modules:{toolbar:[[{"header":[1,2,false]}],["bold","italic","underline"],["link","blockquote","code-block"],[{"list":"ordered"},{"list":"bullet"}],["image"]] }});
+        quill.clipboard.dangerouslyPasteHTML(htmlContent);
+        const dbg=document.createElement('div');dbg.style.cssText="margin-top:8px;color:#bbb;font-size:12px;";
+        dbg.innerHTML=`[요청 URL]: <a href="${urlUsed}" target="_blank" style="color:#bbb;">${urlUsed}</a>`;
+        document.body.appendChild(dbg);
+      }catch(e){
+        console.error(e);
+        loading.innerHTML=`<p style="color:red;">❌ 데이터 불러오기 오류: ${e.message}</p>`;
+      }
+    })();
 
-        // CORS 오류 해결을 위해 API Endpoint를 분리하고 프록시를 사용합니다.
-        const apiEndpoint = "https://news-review-system.mktg-95f.workers.dev/";
-        const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
-        const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
-
-        // DOM 요소
-        const loading = document.getElementById("loading");
-        const contentDisplay = document.getElementById("content-display");
-        const editorContainer = document.getElementById("editor-container");
-        const buttons = document.getElementById("buttons");
-        const editButtons = document.getElementById("edit-buttons");
-
-        const metaTitle = document.getElementById("meta-title");
-        const titleInput = document.getElementById("title-input");
-        const metaCompany = document.getElementById("meta-company");
-        const metaDate = document.getElementById("meta-date");
-        const metaStatus = document.getElementById("meta-status");
-        
-        const customModal = document.getElementById("custom-modal");
-        const modalMessage = document.getElementById("modal-message");
-        const modalButtons = document.getElementById("modal-buttons");
-
-        let quill;
-        let htmlContent = "";
-        let currentContent = "";
-        let airtableRecordId = ""; // Airtable 레코드 ID를 저장할 변수 추가
-
-        // ----------------------------------------------------------------------------------
-        // 커스텀 모달 (alert/confirm 대체) 함수
-        // ----------------------------------------------------------------------------------
-        function showModal(message, isConfirmation = false, onConfirm = null) {
-            modalMessage.innerText = message;
-            modalButtons.innerHTML = '';
-            customModal.classList.remove('hidden');
-
-            if (isConfirmation && onConfirm) {
-                // 확인 버튼
-                const confirmBtn = document.createElement('button');
-                confirmBtn.innerText = '확인';
-                confirmBtn.className = 'confirm-btn';
-                confirmBtn.onclick = () => {
-                    customModal.classList.add('hidden');
-                    onConfirm();
-                };
-                modalButtons.appendChild(confirmBtn);
-
-                // 취소 버튼
-                const cancelBtn = document.createElement('button');
-                cancelBtn.innerText = '취소';
-                cancelBtn.className = 'cancel-btn';
-                cancelBtn.onclick = () => {
-                    customModal.classList.add('hidden');
-                };
-                modalButtons.appendChild(cancelBtn);
-            } else {
-                // 단일 닫기 버튼 (alert 역할)
-                const closeBtn = document.createElement('button');
-                closeBtn.innerText = '닫기';
-                closeBtn.className = 'cancel-btn';
-                closeBtn.onclick = () => {
-                    customModal.classList.add('hidden');
-                };
-                modalButtons.appendChild(closeBtn);
-            }
-        }
-
-        // 웹훅 전송 전 확인 메시지 표시
-        function showConfirmation(action) {
-             const message = `정말 이 기사를 "${action === 'approve' ? '승인 및 배포' : '수정 요청'}" 하시겠습니까?`;
-             showModal(message, true, () => sendWebhook(action));
-        }
-        // ----------------------------------------------------------------------------------
-
-
-        if (!company || !postId) {
-            loading.innerHTML = "<span style='color:red;'>❌ URL에 식별자(company/post_id)가 누락되었습니다.</span>";
-        } else {
-            // ----------------------------------------------------------------------------------
-            // ✅ CORS Proxy를 이용한 데이터 불러오기
-            // ----------------------------------------------------------------------------------
-            const targetUrl = `${apiEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-            
-            console.log("Fetching via proxy URL:", proxyUrl);
-
-            fetch(proxyUrl)
-                .then(res => {
-                    if (!res.ok) {
-                        return res.text().then(text => { 
-                            const errorMessage = `프록시/API 응답 오류: ${res.statusText} - ${text.substring(0, 100)}`;
-                            throw new Error(errorMessage);
-                        });
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    loading.style.display = "none";
-                    
-                    if (data.error) {
-                        contentDisplay.innerHTML = `<p style="color:red;">❌ API 오류: ${data.error}</p>`;
-                        return;
-                    }
-
-                    // Cloudflare Worker가 단일 레코드 객체를 반환한다고 가정하며,
-                    // Airtable Record ID는 'id', 필드 내용은 'fields'에 있을 것으로 예상합니다.
-                    const record = data.fields;
-
-                    if (!record) {
-                        contentDisplay.innerHTML = `
-                            <p style="color:red; font-weight:bold;">❌ 해당 뉴스 기사 콘텐츠를 찾을 수 없습니다.</p>
-                            <p style="color:#777; font-size:14px;">(요청된 식별자: Company='${company}', Post ID='${postId}')</p>
-                        `;
-                        return;
-                    }
-
-                    // ----------------------------------------------------
-                    // ✅ Airtable 필드 값 설정 및 Record ID 저장
-                    // ----------------------------------------------------
-                    // Airtable Record ID를 저장하여 후속 Webhook에 사용
-                    airtableRecordId = data.id; 
-                    
-                    htmlContent = record["본문 html"] || "";
-                    currentContent = htmlContent;
-
-                    // 사용자 요청에 따라 '기업명' 필드를 참조합니다.
-                    const companyName = record["기업명"] || "";
-                    const title = record["기사 제목"] || "제목 없음";
-                    const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : "";
-                    const keywords = record["핵심 키워드"] || ""; 
-                    const status = record["기사 상태"] || "상태 정보 없음";
-
-                    metaCompany.innerText = companyName;
-                    metaTitle.innerText = title;
-                    titleInput.value = title;
-                    metaDate.innerText = date ? `송출 희망일: ${date}` : '송출 희망일 미정';
-                    
-                    // 상태 표시 및 스타일 적용
-                    metaStatus.innerText = `기사 상태: ${status}`;
-                    metaStatus.className = "meta-status"; // 클래스 초기화
-                    if (status.includes("대기")) {
-                        metaStatus.classList.add("status-pending");
-                    } else if (status.includes("승인")) {
-                        metaStatus.classList.add("status-approved");
-                    } else if (status.includes("수정")) {
-                        metaStatus.classList.add("status-retry");
-                    }
-
-                    contentDisplay.innerHTML = `
-                        <div style="max-width: 900px; margin: 0 auto;">
-                            ${htmlContent}
-                            ${keywords ? `<div class="meta-tags">#${keywords.replaceAll(",", " #")}</div>` : ""}
-                        </div>
-                    `;
-                    // ----------------------------------------------------
-
-                    buttons.style.display = "block";
-                    localStorage.setItem(`viewed_${company}_${postId}`, "true");
-
-                    try {
-                        // Quill 초기화
-                        quill = new Quill("#editor-container", {
-                            theme: "snow",
-                            placeholder: "내용을 수정하세요...",
-                            modules: {
-                                toolbar: [
-                                    [{ header: [1, 2, false] }],
-                                    ["bold", "italic", "underline"],
-                                    ["link", "blockquote", "code-block"],
-                                    [{ list: "ordered" }, { list: "bullet" }],
-                                    ["image"] 
-                                ]
-                            }
-                        });
-
-                        // Quill 에디터에 이미지 핸들러 연결 및 Base64 처리 로직 유지
-                        quill.getModule('toolbar').addHandler('image', function() {
-                            triggerImageUpload(); 
-                        });
-
-                        quill.getModule('clipboard').addMatcher('img', function (node, delta) {
-                            const imageSrc = node.getAttribute('src');
-                            if (imageSrc && imageSrc.startsWith('data:image')) {
-                                console.log("Base64 이미지 감지. Cloudinary 업로드 시도.");
-                                uploadBase64ToCloudinary(imageSrc);
-                                return new Delta();
-                            }
-                            return delta;
-                        });
-
-                        // ⚠️ 에러 발생 가능성이 있는 부분에 try-catch 추가
-                        quill.clipboard.dangerouslyPasteHTML(htmlContent);
-                    } catch (e) {
-                        console.error("⚠️ Quill 콘텐츠 로딩 중 치명적인 오류 발생:", e);
-                        // Quill 초기화는 성공했더라도, 콘텐츠 붙여넣기에서 실패했을 경우
-                        if (contentDisplay.style.display !== "none") {
-                             contentDisplay.innerHTML = `
-                                <p style="color:red; font-weight:bold;">❌ Quill 에디터 콘텐츠 로딩 오류!</p>
-                                <p style="color:#777; font-size:14px;">(특정 기사 내용의 HTML 구조가 Quill과 충돌합니다. 수정 모드를 사용하려면 수동으로 내용을 붙여넣어 주세요.)</p>
-                                <pre style="white-space: pre-wrap; word-break: break-all; border: 1px solid #ddd; padding: 10px; margin-top: 15px;">원본 HTML: ${htmlContent.substring(0, 500)}...</pre>
-                            `;
-                            // Quill 에디터를 수동으로 열 수 있도록 준비
-                            editorContainer.style.display = "none";
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error("⚠️ 콘텐츠 불러오기 오류:", error);
-                    // 전송된 URL을 표시하여 디버깅을 돕습니다.
-                    loading.innerHTML = `
-                        <p style="color:red; font-weight:bold;">❌ 데이터 불러오기 오류 발생: ${error.message}</p>
-                        <p style="color:#777; font-size:14px;">(Cloudflare Worker가 요청한 Company='${company}' / Post ID='${postId}' 에 해당하는 레코드를 찾지 못했거나 네트워크 오류가 발생했습니다.)</p>
-                        <p style="color:#bbb; font-size:12px; margin-top: 10px;">[요청 URL 디버깅]: <a href="${targetUrl}" target="_blank" style="color:#bbb; word-break: break-all;">${targetUrl}</a></p>
-                        <p style="color:#bbb; font-size:12px; margin-top: 5px;">[프록시 URL 디버깅]: <a href="${proxyUrl}" target="_blank" style="color:#bbb; word-break: break-all;">${proxyUrl}</a></p>
-                    `;
-                });
-        }
-
-        function toggleEditMode() {
-            editorContainer.style.display = "block";
-            contentDisplay.style.display = "none";
-            buttons.style.display = "none";
-            editButtons.style.display = "block";
-            metaTitle.style.display = "none";
-            titleInput.style.display = "block";
-            // Quill이 성공적으로 초기화된 경우에만 붙여넣기 시도
-            if (quill) {
-                quill.clipboard.dangerouslyPasteHTML(currentContent);
-            } else {
-                 showModal("❌ 에디터 초기화 오류로 인해 내용을 자동으로 로딩할 수 없습니다. 내용을 직접 붙여넣어 주세요.", false);
-            }
-        }
-
-        function applyEdit() {
-            currentContent = quill.root.innerHTML;
-            const newTitle = titleInput.value || "제목 없음";
-            metaTitle.innerText = newTitle;
-
-            const keywordsElement = document.querySelector('.meta-tags') ? document.querySelector('.meta-tags').outerHTML : '';
-
-            contentDisplay.innerHTML = `
-                <div style="max-width: 900px; margin: 0 auto;">
-                    ${currentContent}
-                    ${keywordsElement}
-                </div>
-            `;
-
-            editorContainer.style.display = "none";
-            contentDisplay.style.display = "block";
-            buttons.style.display = "block";
-            editButtons.style.display = "none";
-            metaTitle.style.display = "block";
-            titleInput.style.display = "none";
-        }
-
-        function cancelEdit() {
-            editorContainer.style.display = "none";
-            contentDisplay.style.display = "block";
-            buttons.style.display = "block";
-            editButtons.style.display = "none";
-            metaTitle.style.display = "block";
-            titleInput.style.display = "none";
-        }
-
-        function sendWebhook(action) {
-            const url = action === "approve" ? webhookApprove : webhookRetry;
-            
-            if (!airtableRecordId) {
-                console.error("Airtable Record ID가 누락되어 Webhook을 전송할 수 없습니다.");
-                showModal("Airtable Record ID가 누락되어 Webhook을 전송할 수 없습니다. (콘솔 확인)", false);
-                return;
-            }
-
-            // record_id (Airtable ID)를 포함하여 전송
-            const payload = {
-                record_id: airtableRecordId, // Airtable Record ID를 payload에 포함
-                post_id: postId,
-                company: company,
-                action: action,
-                content_type: 'news' 
-            };
-
-            if (action === "approve") {
-                const title = titleInput.value || "제목 없음";
-                
-                // 현재 contentDisplay에 표시되는 HTML을 기반으로 페이로드 생성
-                const pureContentDiv = document.createElement('div');
-                pureContentDiv.innerHTML = currentContent;
-
-                // 콘텐츠를 900px 래퍼로 감싸는 로직 유지 (CSS 클래스가 아닌 인라인 스타일로 유지)
-                const wrappedContent = pureContentDiv.innerHTML.includes("max-width: 900px")
-                    ? pureContentDiv.innerHTML
-                    : `<div style="max-width: 900px; margin: 0 auto;">${pureContentDiv.innerHTML}</div>`;
-
-                payload["edited_title"] = title;
-                payload["edited_html"] = wrappedContent; 
-            }
-
-            fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error('Network response was not ok: ' + res.statusText);
-                    showModal(`"${action === 'approve' ? '승인' : '수정 요청'}" 요청이 성공적으로 전송되었습니다.`);
-                })
-                .catch(error => {
-                    console.error("요청 전송 중 오류 발생", error);
-                    showModal("요청 전송 중 오류 발생 (콘솔 확인)", false);
-                });
-        }
-
-        function triggerImageUpload() {
-            document.getElementById("image-upload").click();
-        }
-
-        // --- 이미지 파일 선택 및 Cloudinary 업로드 ---
-        document.getElementById("image-upload").addEventListener("change", function () {
-            const file = this.files[0];
-            if (!file) {
-                console.log("파일이 선택되지 않았습니다.");
-                return;
-            }
-
-            console.log("이미지 파일 선택됨:", file.name, file.type);
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const img = new Image();
-                img.onload = function () {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-
-                    canvas.toBlob(function (blob) {
-                        const convertedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" });
-                        console.log("변환된 파일:", convertedFile.name, convertedFile.type, convertedFile.size);
-
-                        const formData = new FormData();
-                        formData.append("file", convertedFile);
-                        formData.append("upload_preset", "mktg_ai"); // Cloudinary 업로드 프리셋
-
-                        fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
-                            method: "POST",
-                            body: formData
-                        })
-                            .then(res => {
-                                if (!res.ok) {
-                                    return res.text().then(text => { throw new Error('Cloudinary upload failed: ' + text); });
-                                }
-                                return res.json();
-                            })
-                            .then(result => {
-                                const url = result.secure_url;
-                                const alt = convertedFile.name.split(".")[0];
-                                console.log("Cloudinary 업로드 성공, URL:", url);
-
-                                // Quill 에디터에 이미지 삽입
-                                const range = quill.getSelection(true);
-                                quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
-                                
-                                // 파일 선택기 초기화 (같은 파일 재선택 가능하도록)
-                                document.getElementById("image-upload").value = '';
-                            })
-                            .catch(err => {
-                                console.error("❌ 이미지 Cloudinary 업로드 실패:", err);
-                                showModal("이미지 업로드에 실패했습니다. 콘솔을 확인해 주세요.", false);
-                                document.getElementById("image-upload").value = '';
-                            });
-                    }, "image/jpeg", 0.92);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // --- Base64 이미지 붙여넣기 후 Cloudinary 업로드 ---
-        function uploadBase64ToCloudinary(base64Data) {
-            console.log("Base64 이미지 Cloudinary 업로드 함수 호출됨.");
-            const blob = base64ToBlob(base64Data);
-            const file = new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type }); // 고유 파일명 생성
-
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("upload_preset", "mktg_ai");
-
-            fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
-                method: "POST",
-                body: formData
-            })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.text().then(text => { throw new Error('Cloudinary base64 upload failed: ' + text); });
-                    }
-                    return res.json();
-                })
-                .then(result => {
-                    const url = result.secure_url;
-                    console.log("Cloudinary (Base64) 업로드 성공, URL:", url);
-                    const range = quill.getSelection(true);
-                    quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
-                })
-                .catch(err => {
-                    console.error("❌ Cloudinary (Base64) 업로드 실패:", err);
-                    showModal("이미지 업로드에 실패했습니다. 콘솔을 확인해 주세요.", false);
-                });
-        }
-
-        // --- Base64 to Blob 변환 함수 (변경 없음) ---
-        function base64ToBlob(base64) {
-            const parts = base64.split(";base64,");
-            const contentType = parts[0].split(":")[1];
-            const raw = window.atob(parts[1]);
-            const rawLength = raw.length;
-            const uInt8Array = new Uint8Array(rawLength);
-
-            for (let i = 0; i < rawLength; ++i) {
-                uInt8Array[i] = raw.charCodeAt(i);
-            }
-
-            return new Blob([uInt8Array], { type: contentType });
-        }
-
-        // --- 이미지 클릭 시 삭제 (confirm() 대체) ---
-        document.addEventListener("click", function (e) {
-            if (e.target.tagName === "IMG" && contentDisplay.style.display !== "none") {
-                showModal("이 이미지를 삭제하시겠습니까? (Quill 에디터가 아닌 뷰어에서만 작동하며, 최종 승인 시 반영됩니다.)", true, () => {
-                    const parent = e.target.closest("p") || e.target;
-                    parent.remove();
-                    // currentContent를 업데이트하여 변경 사항이 sendWebhook에 반영되도록 함
-                    currentContent = contentDisplay.querySelector('div').innerHTML; 
-                });
-            }
-        });
-    </script>
+    function toggleEditMode(){editorContainer.style.display="block";contentDisplay.style.display="none";buttons.style.display="none";editButtons.style.display="block";metaTitle.style.display="none";titleInput.style.display="block";quill.clipboard.dangerouslyPasteHTML(currentContent);}
+    function applyEdit(){currentContent=quill.root.innerHTML;const nt=titleInput.value||"제목 없음";metaTitle.innerText=nt;contentDisplay.innerHTML=`<div style="max-width:900px;margin:0 auto;">${currentContent}</div>`;editorContainer.style.display="none";contentDisplay.style.display="block";buttons.style.display="block";editButtons.style.display="none";metaTitle.style.display="block";titleInput.style.display="none";}
+    function cancelEdit(){editorContainer.style.display="none";contentDisplay.style.display="block";buttons.style.display="block";editButtons.style.display="none";metaTitle.style.display="block";titleInput.style.display="none";}
+    function sendWebhook(a){const url=a==="approve"?webhookApprove:webhookRetry;if(!airtableRecordId){showModal("❌ Record ID 누락",false);return;}const p={record_id:airtableRecordId,post_id:postId,company:company,action:a,content_type:"news"};if(a==="approve"){p.edited_title=titleInput.value||"제목 없음";p.edited_html=`<div style="max-width:900px;margin:0 auto;">${currentContent}</div>`;}fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).then(r=>{if(!r.ok)throw new Error(r.statusText);showModal("요청 전송 완료");}).catch(e=>showModal("오류: "+e.message));}
+    function triggerImageUpload(){document.getElementById("image-upload").click();}
+  </script>
 </body>
 </html>
