@@ -32,7 +32,7 @@
             height: 400px;
             display: none;
             padding: 0;
-            box-shadow: none; /* Quill editor는 자체 스타일이 있으므로 박스 쉐도우 제거 */
+            box-shadow: none;
         }
         .quill {
             border-radius: 0 0 12px 12px;
@@ -142,11 +142,12 @@
 <body>
     <h1>AI 뉴스 콘텐츠 검수</h1>
     <div id="meta-display">
-        <!-- '기업명' 대신 '언론사'로 변경 --><div class="meta-company" id="meta-company"></div>
-        <!-- '콘텐츠 제목' 대신 '기사 제목'으로 변경 --><div class="meta-title" id="meta-title"></div>
+        <!-- '기업명' 필드에 저장된 정보를 표시 -->
+        <div class="meta-company" id="meta-company"></div>
+        <div class="meta-title" id="meta-title"></div>
         <input type="text" id="title-input" />
-        <!-- '예약 날짜' 대신 '송출 희망일'으로 변경 --><div class="meta-date" id="meta-date"></div>
-        <div class="meta-status" id="meta-status"></div> <!-- NEW: 기사 상태 표시 -->
+        <div class="meta-date" id="meta-date"></div>
+        <div class="meta-status" id="meta-status"></div>
     </div>
 
     <div id="loading">⏳ 불러오는 중입니다...</div>
@@ -157,7 +158,7 @@
         <button onclick="toggleEditMode()">✏️ 수정</button>
         <button onclick="sendWebhook('approve')">✅ 최종 승인 및 배포</button>
         <button onclick="sendWebhook('retry')">🔁 수정 요청 및 재시도</button>
-        <button onclick="goHome()">🏠 홈으로</button>
+        <!-- '홈으로' 버튼 삭제됨 -->
     </div>
 
     <div id="edit-buttons" class="edit-buttons">
@@ -173,10 +174,10 @@
         // URL 매개변수
         const urlParams = new URLSearchParams(window.location.search);
         const company = urlParams.get("company"); // 언론사 이름 등 식별자
-        const postId = urlParams.get("post_id"); // 기사 ID
+        const postId = urlParams.get("post_id"); // 기사 ID (Airtable에서 post_id 필드와 매칭될 것으로 예상)
 
         // CORS 오류 해결을 위해 API Endpoint를 분리하고 프록시를 사용합니다.
-        const apiEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/"; 
+        const apiEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/"; 
         const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
         const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
 
@@ -191,19 +192,22 @@
         const titleInput = document.getElementById("title-input");
         const metaCompany = document.getElementById("meta-company");
         const metaDate = document.getElementById("meta-date");
-        const metaStatus = document.getElementById("meta-status"); 
+        const metaStatus = document.getElementById("meta-status"); 
 
         let quill;
         let htmlContent = "";
         let currentContent = "";
+        let airtableRecordId = ""; // Airtable 레코드 ID를 저장할 변수 추가
 
         if (!company || !postId) {
             loading.innerHTML = "<span style='color:red;'>❌ URL에 식별자(company/post_id)가 누락되었습니다.</span>";
         } else {
             // ----------------------------------------------------------------------------------
-            // ✅ CORS Proxy를 이용한 데이터 불러오기 (CORS 오류 해결)
+            // ✅ CORS Proxy를 이용한 데이터 불러오기
             // ----------------------------------------------------------------------------------
+            // Cloudflare Worker에게 post_id와 company를 기반으로 레코드를 요청합니다.
             const targetUrl = `${apiEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
+            // CORS 프록시를 통해 요청
             const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
             
             console.log("Fetching via proxy URL:", proxyUrl);
@@ -211,8 +215,7 @@
             fetch(proxyUrl)
                 .then(res => {
                     if (!res.ok) {
-                        // 프록시 오류나 Cloudflare 응답 오류가 발생하면 에러 처리
-                        return res.text().then(text => { 
+                        return res.text().then(text => { 
                             const errorMessage = `프록시/API 응답 오류: ${res.statusText} - ${text.substring(0, 100)}`;
                             throw new Error(errorMessage);
                         });
@@ -222,29 +225,37 @@
                 .then(data => {
                     loading.style.display = "none";
                     
-                    // 에러 메시지가 JSON 응답 본문에 포함된 경우 처리 (Cloudflare Worker 설정에 따라 다름)
                     if (data.error) {
                         contentDisplay.innerHTML = `<p style="color:red;">❌ API 오류: ${data.error}</p>`;
                         return;
                     }
 
+                    // Cloudflare Worker가 단일 레코드 객체를 반환한다고 가정하며,
+                    // Airtable Record ID는 'id', 필드 내용은 'fields'에 있을 것으로 예상합니다.
                     const record = data.fields;
 
                     if (!record) {
-                        contentDisplay.innerHTML = "<p>❌ 해당 뉴스 기사 콘텐츠를 찾을 수 없습니다.</p>";
+                        contentDisplay.innerHTML = `
+                            <p style="color:red; font-weight:bold;">❌ 해당 뉴스 기사 콘텐츠를 찾을 수 없습니다.</p>
+                            <p style="color:#777; font-size:14px;">(요청된 식별자: Company='${company}', Post ID='${postId}')</p>
+                        `;
                         return;
                     }
 
                     // ----------------------------------------------------
-                    // ✅ Airtable 필드 값 설정
+                    // ✅ Airtable 필드 값 설정 및 Record ID 저장
                     // ----------------------------------------------------
+                    // Airtable Record ID를 저장하여 후속 Webhook에 사용
+                    airtableRecordId = data.id; 
+                    
                     htmlContent = record["기사 본문(html)"] || "";
                     currentContent = htmlContent;
 
+                    // 사용자 요청에 따라 '기업명' 필드를 참조합니다.
                     const companyName = record["기업명"] || "";
                     const title = record["기사 제목"] || "제목 없음";
                     const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : "";
-                    const keywords = record["핵심 키워드"] || ""; 
+                    const keywords = record["핵심 키워드"] || ""; 
                     const status = record["기사 상태"] || "상태 정보 없음";
 
                     metaCompany.innerText = companyName;
@@ -283,17 +294,16 @@
                                 ["bold", "italic", "underline"],
                                 ["link", "blockquote", "code-block"],
                                 [{ list: "ordered" }, { list: "bullet" }],
-                                ["image"] 
+                                ["image"] 
                             ]
                         }
                     });
 
-                    // Quill 에디터에 이미지 핸들러 연결
+                    // Quill 에디터에 이미지 핸들러 연결 및 Base64 처리 로직 유지
                     quill.getModule('toolbar').addHandler('image', function() {
-                        triggerImageUpload(); 
+                        triggerImageUpload(); 
                     });
 
-                    // base64 이미지 붙여넣기 차단 + 업로드
                     quill.getModule('clipboard').addMatcher('img', function (node, delta) {
                         const imageSrc = node.getAttribute('src');
                         if (imageSrc && imageSrc.startsWith('data:image')) {
@@ -311,7 +321,7 @@
                     // 전송된 URL을 표시하여 디버깅을 돕습니다.
                     loading.innerHTML = `
                         <p style="color:red; font-weight:bold;">❌ 데이터 불러오기 오류 발생: ${error.message}</p>
-                        <p style="color:#777; font-size:14px;">(Cloudflare Worker가 요청한 ${company} / ${postId} 에 해당하는 레코드를 찾지 못했습니다.)</p>
+                        <p style="color:#777; font-size:14px;">(Cloudflare Worker가 요청한 Company='${company}' / Post ID='${postId}' 에 해당하는 레코드를 찾지 못했거나 네트워크 오류가 발생했습니다.)</p>
                         <p style="color:#bbb; font-size:12px; margin-top: 10px;">[요청 URL 디버깅]: <a href="${targetUrl}" target="_blank" style="color:#bbb; word-break: break-all;">${targetUrl}</a></p>
                         <p style="color:#bbb; font-size:12px; margin-top: 5px;">[프록시 URL 디버깅]: <a href="${proxyUrl}" target="_blank" style="color:#bbb; word-break: break-all;">${proxyUrl}</a></p>
                     `;
@@ -362,49 +372,55 @@
         function sendWebhook(action) {
             const url = action === "approve" ? webhookApprove : webhookRetry;
             
-            if (!confirm(`정말 이 기사를 "${action === 'approve' ? '승인' : '수정 요청'}" 하시겠습니까?`)) {
+            // alert() 대신 사용자 정의 UI를 사용해야 하지만, 기존 코드의 흐름을 유지하기 위해 임시로 사용
+            if (!airtableRecordId) {
+                console.error("Airtable Record ID가 누락되어 Webhook을 전송할 수 없습니다.");
+                alert("Airtable Record ID가 누락되어 Webhook을 전송할 수 없습니다. (콘솔 확인)");
                 return;
             }
 
-            const payload = {
-                post_id: postId,
-                company: company,
-                action: action,
-                content_type: 'news' 
-            };
+            if (confirm(`정말 이 기사를 "${action === 'approve' ? '승인' : '수정 요청'}" 하시겠습니까?`)) {
+                // record_id (Airtable ID)를 포함하여 전송
+                const payload = {
+                    record_id: airtableRecordId, // Airtable Record ID를 payload에 포함
+                    post_id: postId,
+                    company: company,
+                    action: action,
+                    content_type: 'news' 
+                };
 
-            if (action === "approve") {
-                const title = titleInput.value || "제목 없음";
-                
-                const pureContentDiv = document.createElement('div');
-                pureContentDiv.innerHTML = currentContent;
+                if (action === "approve") {
+                    const title = titleInput.value || "제목 없음";
+                    
+                    const pureContentDiv = document.createElement('div');
+                    pureContentDiv.innerHTML = currentContent;
 
-                const wrappedContent = pureContentDiv.innerHTML.includes("max-width: 900px")
-                    ? pureContentDiv.innerHTML
-                    : `<div style="max-width: 900px; margin: 0 auto;">${pureContentDiv.innerHTML}</div>`;
+                    // 콘텐츠를 다시 900px 래퍼로 감싸는 로직 유지
+                    const wrappedContent = pureContentDiv.innerHTML.includes("max-width: 900px")
+                        ? pureContentDiv.innerHTML
+                        : `<div style="max-width: 900px; margin: 0 auto;">${pureContentDiv.innerHTML}</div>`;
 
-                payload["edited_title"] = title;
-                payload["edited_html"] = wrappedContent; 
-            }
+                    payload["edited_title"] = title;
+                    payload["edited_html"] = wrappedContent; 
+                }
 
-            fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error('Network response was not ok: ' + res.statusText);
-                    alert(`"${action === 'approve' ? '승인' : '수정 요청'}" 요청이 전송되었습니다.`);
+                fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
                 })
-                .catch(error => {
-                    console.error("요청 전송 중 오류 발생", error);
-                    alert("요청 전송 중 오류 발생");
-                });
+                    .then(res => {
+                        if (!res.ok) throw new Error('Network response was not ok: ' + res.statusText);
+                        alert(`"${action === 'approve' ? '승인' : '수정 요청'}" 요청이 전송되었습니다.`);
+                    })
+                    .catch(error => {
+                        console.error("요청 전송 중 오류 발생", error);
+                        alert("요청 전송 중 오류 발생 (콘솔 확인)");
+                    });
+            }
         }
 
-        function goHome() {
-            window.location.href = `news-list-page.html?company=${company}`;
-        }
+        // goHome() 함수 삭제됨
 
         function triggerImageUpload() {
             document.getElementById("image-upload").click();
@@ -432,7 +448,6 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
 
-                    // 이미지를 JPEG으로 변환하여 업로드 (투명 배경 제거 및 용량 최적화)
                     canvas.toBlob(function (blob) {
                         const convertedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" });
                         console.log("변환된 파일:", convertedFile.name, convertedFile.type, convertedFile.size);
@@ -525,6 +540,7 @@
         // --- 이미지 클릭 시 삭제 (변경 없음) ---
         document.addEventListener("click", function (e) {
             if (e.target.tagName === "IMG") {
+                // confirm() 대신 사용자 정의 UI를 사용해야 하지만, 기존 코드의 흐름을 유지하기 위해 임시로 사용
                 if (confirm("이 이미지를 삭제하시겠습니까? (Quill 에디터가 아닌 뷰어에서만 작동)")) {
                     const parent = e.target.closest("p") || e.target;
                     parent.remove();
