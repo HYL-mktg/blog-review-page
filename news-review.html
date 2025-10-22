@@ -35,6 +35,7 @@
     .modal-buttons .confirm-btn{background-color:var(--secondary-color);color:#fff;}
     .modal-buttons .cancel-btn{background-color:#ccc;color:#333;}
     .hidden{display:none;}
+    .debug-log{margin-top:20px;padding:15px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#666;text-align:left;max-width:900px;margin-left:auto;margin-right:auto;max-height:200px;overflow-y:auto;}
   </style>
 </head>
 <body>
@@ -73,20 +74,50 @@
     </div>
   </div>
 
+  <div id="debug-log" class="debug-log" style="display:none;"></div>
+
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <script>
-    // ✅ 유틸 함수
+    // ✅ 디버그 로그 함수
+    const debugLog = document.getElementById("debug-log");
+    function addDebugLog(msg) {
+      debugLog.style.display = "block";
+      const time = new Date().toLocaleTimeString();
+      debugLog.innerHTML += `<div>[${time}] ${msg}</div>`;
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+
+    // ✅ 유틸 함수 개선
     function normalizeKey(str){
       if(!str) return '';
+      // 디코딩 후 재정규화 (중복 인코딩 방지)
+      try {
+        str = decodeURIComponent(str);
+      } catch(e) {
+        // 이미 디코딩된 상태
+      }
       return str.normalize('NFC')
         .replace(/\u00A0/g,' ')
         .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g,'-')
         .replace(/[ \t\u2000-\u200B\u3000]+/g,' ')
         .trim();
     }
-    function encodeOnce(s){return encodeURIComponent(s);}
-    const collapse=s=>s.replace(/-+/g,'-').replace(/\s+/g,' ');
-    const stripWeird=s=>s.replace(/[^\w\s\-가-힣]/g,'').replace(/\s+/g,' ').trim();
+    
+    function encodeOnce(s){
+      // 이미 인코딩되어 있는지 확인
+      try {
+        if (decodeURIComponent(s) !== s) {
+          return s; // 이미 인코딩됨
+        }
+      } catch(e) {}
+      return encodeURIComponent(s);
+    }
+    
+    const collapse=s=>s.replace(/-+/g,'-').replace(/\s+/g,' ').trim();
+    const stripWeird=s=>s.replace(/[^\w\s\-가-힣0-9]/g,'').replace(/\s+/g,' ').trim();
+    const removeSpaces=s=>s.replace(/\s+/g,'');
+    const hyphenToSpace=s=>s.replace(/-/g,' ');
+    const spaceToHyphen=s=>s.replace(/\s+/g,'-');
 
     // 모달
     const customModal=document.getElementById("custom-modal");
@@ -114,6 +145,9 @@
     const urlParams=new URLSearchParams(window.location.search);
     const company=normalizeKey(urlParams.get("company")||"");
     const postId=normalizeKey(urlParams.get("post_id")||"");
+    
+    addDebugLog(`📥 원본 파라미터 - Company: "${company}", Post ID: "${postId}"`);
+    
     const apiEndpoint="https://news-review-system.mktg-95f.workers.dev/";
     const webhookApprove="https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
     const webhookRetry="https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
@@ -131,33 +165,77 @@
     let quill,htmlContent="",currentContent="",airtableRecordId="";
 
     async function fetchRecordWithFallback(baseEndpoint,company,postId){
+      // 더 많은 변형 시도
       const tries=[
-        {c:company,p:postId},
-        {c:collapse(company),p:collapse(postId)},
-        {c:stripWeird(company),p:stripWeird(postId)}
+        // 원본
+        {c:company,p:postId,desc:"원본"},
+        // 공백/하이픈 정규화
+        {c:collapse(company),p:collapse(postId),desc:"collapse"},
+        // 특수문자 제거
+        {c:stripWeird(company),p:stripWeird(postId),desc:"stripWeird"},
+        // 공백 제거
+        {c:removeSpaces(company),p:removeSpaces(postId),desc:"removeSpaces"},
+        // 하이픈을 공백으로
+        {c:hyphenToSpace(company),p:hyphenToSpace(postId),desc:"hyphenToSpace"},
+        // 공백을 하이픈으로
+        {c:spaceToHyphen(company),p:spaceToHyphen(postId),desc:"spaceToHyphen"},
+        // 조합: collapse + stripWeird
+        {c:stripWeird(collapse(company)),p:stripWeird(collapse(postId)),desc:"collapse+stripWeird"},
+        // Post ID만 변형 (Company는 원본)
+        {c:company,p:collapse(postId),desc:"원본Company+collapsePostId"},
+        {c:company,p:stripWeird(postId),desc:"원본Company+stripWeirdPostId"},
+        {c:company,p:removeSpaces(postId),desc:"원본Company+removeSpacesPostId"},
+        // Company만 변형 (Post ID는 원본)
+        {c:collapse(company),p:postId,desc:"collapseCompany+원본PostId"},
+        {c:stripWeird(company),p:postId,desc:"stripWeirdCompany+원본PostId"},
       ];
+      
       let lastErr="";
+      let attemptNum = 0;
+      
       for(const t of tries){
+        attemptNum++;
         const target=`${baseEndpoint}?company=${encodeOnce(t.c)}&post_id=${encodeOnce(t.p)}`;
         const proxy=`https://corsproxy.io/?${encodeURIComponent(target)}`;
+        
+        addDebugLog(`🔍 시도 ${attemptNum}/${tries.length} (${t.desc}) - Company: "${t.c}", Post ID: "${t.p}"`);
+        
         try{
           const res=await fetch(proxy);
-          if(!res.ok){lastErr=await res.text();continue;}
+          if(!res.ok){
+            lastErr=await res.text();
+            addDebugLog(`❌ 시도 ${attemptNum} 실패: ${res.status} ${res.statusText}`);
+            continue;
+          }
           const data=await res.json();
-          if(data&&data.fields)return{data,urlUsed:target,proxyUsed:proxy};
-        }catch(e){lastErr=e.message;}
+          if(data&&data.fields){
+            addDebugLog(`✅ 시도 ${attemptNum} 성공! (${t.desc})`);
+            return{data,urlUsed:target,proxyUsed:proxy};
+          }
+          addDebugLog(`⚠️ 시도 ${attemptNum}: 응답은 받았으나 데이터 없음`);
+        }catch(e){
+          lastErr=e.message;
+          addDebugLog(`❌ 시도 ${attemptNum} 예외: ${e.message}`);
+        }
       }
-      throw new Error(`No record found (${lastErr})`);
+      
+      throw new Error(`❌ No matching record found after ${tries.length} attempts. Last error: ${lastErr}`);
     }
 
     (async()=>{
       if(!company||!postId){
-        loading.innerHTML="<span style='color:red;'>❌ URL 파라미터 누락</span>";return;
+        loading.innerHTML="<span style='color:red;'>❌ URL 파라미터 누락</span>";
+        addDebugLog("❌ Company 또는 Post ID 파라미터가 누락되었습니다.");
+        return;
       }
+      
       try{
         const {data,urlUsed,proxyUsed}=await fetchRecordWithFallback(apiEndpoint,company,postId);
         loading.style.display="none";
         const r=data.fields;airtableRecordId=data.id;
+        
+        addDebugLog(`✅ 레코드 ID: ${airtableRecordId}`);
+        
         htmlContent=r["본문 html"]||"";currentContent=htmlContent;
         metaCompany.innerText=r["기업명"]||"";metaTitle.innerText=r["기사 제목"]||"제목 없음";
         titleInput.value=r["기사 제목"]||"";metaDate.innerText=r["송출 희망일"]?`송출 희망일: ${new Date(r["송출 희망일"]).toLocaleDateString("ko-KR")}`:"송출 희망일 미정";
@@ -171,19 +249,23 @@
         buttons.style.display="block";
         quill=new Quill("#editor-container",{theme:"snow",modules:{toolbar:[[{"header":[1,2,false]}],["bold","italic","underline"],["link","blockquote","code-block"],[{"list":"ordered"},{"list":"bullet"}],["image"]] }});
         quill.clipboard.dangerouslyPasteHTML(htmlContent);
-        const dbg=document.createElement('div');dbg.style.cssText="margin-top:8px;color:#bbb;font-size:12px;";
-        dbg.innerHTML=`[요청 URL]: <a href="${urlUsed}" target="_blank" style="color:#bbb;">${urlUsed}</a>`;
+        
+        addDebugLog(`✅ 콘텐츠 로드 완료 - 제목: "${r["기사 제목"]}"`);
+        
+        const dbg=document.createElement('div');dbg.style.cssText="margin-top:8px;color:#bbb;font-size:12px;text-align:center;";
+        dbg.innerHTML=`[성공한 요청 URL]: <a href="${urlUsed}" target="_blank" style="color:#159CCA;">${urlUsed}</a>`;
         document.body.appendChild(dbg);
       }catch(e){
         console.error(e);
-        loading.innerHTML=`<p style="color:red;">❌ 데이터 불러오기 오류: ${e.message}</p>`;
+        loading.innerHTML=`<p style="color:red;">❌ 데이터 불러오기 오류 발생: ${e.message}</p><p style="font-size:14px;color:#666;margin-top:10px;">(Cloudflare Worker가 요청한 Company='${company}' / Post ID='${postId}' 에 해당하는 레코드를 찾지 못했거나 네트워크 오류가 발생했습니다.)</p>`;
+        addDebugLog(`🔥 최종 실패: ${e.message}`);
       }
     })();
 
     function toggleEditMode(){editorContainer.style.display="block";contentDisplay.style.display="none";buttons.style.display="none";editButtons.style.display="block";metaTitle.style.display="none";titleInput.style.display="block";quill.clipboard.dangerouslyPasteHTML(currentContent);}
     function applyEdit(){currentContent=quill.root.innerHTML;const nt=titleInput.value||"제목 없음";metaTitle.innerText=nt;contentDisplay.innerHTML=`<div style="max-width:900px;margin:0 auto;">${currentContent}</div>`;editorContainer.style.display="none";contentDisplay.style.display="block";buttons.style.display="block";editButtons.style.display="none";metaTitle.style.display="block";titleInput.style.display="none";}
     function cancelEdit(){editorContainer.style.display="none";contentDisplay.style.display="block";buttons.style.display="block";editButtons.style.display="none";metaTitle.style.display="block";titleInput.style.display="none";}
-    function sendWebhook(a){const url=a==="approve"?webhookApprove:webhookRetry;if(!airtableRecordId){showModal("❌ Record ID 누락",false);return;}const p={record_id:airtableRecordId,post_id:postId,company:company,action:a,content_type:"news"};if(a==="approve"){p.edited_title=titleInput.value||"제목 없음";p.edited_html=`<div style="max-width:900px;margin:0 auto;">${currentContent}</div>`;}fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).then(r=>{if(!r.ok)throw new Error(r.statusText);showModal("요청 전송 완료");}).catch(e=>showModal("오류: "+e.message));}
+    function sendWebhook(a){const url=a==="approve"?webhookApprove:webhookRetry;if(!airtableRecordId){showModal("❌ Record ID 누락",false);return;}const p={record_id:airtableRecordId,post_id:postId,company:company,action:a,content_type:"news"};if(a==="approve"){p.edited_title=titleInput.value||"제목 없음";p.edited_html=`<div style="max-width:900px;margin:0 auto;">${currentContent}</div>`;}fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).then(r=>{if(!r.ok)throw new Error(r.statusText);showModal("요청 전송 완료");addDebugLog(`✅ Webhook 전송 완료 (${a})`);}).catch(e=>{showModal("오류: "+e.message);addDebugLog(`❌ Webhook 전송 실패: ${e.message}`);});}
     function triggerImageUpload(){document.getElementById("image-upload").click();}
   </script>
 </body>
