@@ -241,7 +241,7 @@
                     htmlContent = record["기사 본문(html)"] || "";
                     currentContent = htmlContent;
 
-                    const companyName = record["기업"] || "";
+                    const companyName = record["기업명"] || "";
                     const title = record["기사 제목"] || "제목 없음";
                     const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : "";
                     const keywords = record["핵심 키워드"] || ""; 
