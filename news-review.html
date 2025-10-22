@@ -94,6 +94,28 @@
             color: #999;
             margin-bottom: 16px;
         }
+        .meta-status { /* NEW STYLE: 기사 상태 표시 */
+            font-size: 18px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 15px;
+            margin-top: 10px;
+        }
+        /* NEW STYLE: 상태별 색상 */
+        .status-pending {
+            background-color: #fce38a; /* 대기: 노란색 */
+            color: #333;
+        }
+        .status-approved {
+            background-color: var(--secondary-color); /* 승인: 초록색 */
+            color: white;
+        }
+        .status-retry {
+            background-color: #e74c3c; /* 수정 요청: 빨간색 */
+            color: white;
+        }
         .meta-tags {
             font-size: 14px;
             color: var(--primary-color);
@@ -120,13 +142,11 @@
 <body>
     <h1>AI 뉴스 콘텐츠 검수</h1>
     <div id="meta-display">
-        <!-- '기업명' 대신 '언론사'로 변경 -->
-        <div class="meta-company" id="meta-company"></div>
-        <!-- '콘텐츠 제목' 대신 '기사 제목'으로 변경 -->
-        <div class="meta-title" id="meta-title"></div>
+        <!-- '기업명' 대신 '언론사'로 변경 --><div class="meta-company" id="meta-company"></div>
+        <!-- '콘텐츠 제목' 대신 '기사 제목'으로 변경 --><div class="meta-title" id="meta-title"></div>
         <input type="text" id="title-input" />
-        <!-- '예약 날짜' 대신 '송출 희망일'로 변경 -->
-        <div class="meta-date" id="meta-date"></div>
+        <!-- '예약 날짜' 대신 '송출 희망일'으로 변경 --><div class="meta-date" id="meta-date"></div>
+        <div class="meta-status" id="meta-status"></div> <!-- NEW: 기사 상태 표시 -->
     </div>
 
     <div id="loading">⏳ 불러오는 중입니다...</div>
@@ -136,7 +156,7 @@
     <div id="buttons" style="display:none;">
         <button onclick="toggleEditMode()">✏️ 수정</button>
         <button onclick="sendWebhook('approve')">✅ 최종 승인 및 배포</button>
-        <button onclick="sendWebhook('retry')">🔁 승인 취소</button>
+        <button onclick="sendWebhook('retry')">🔁 수정 요청 및 재시도</button>
         <button onclick="goHome()">🏠 홈으로</button>
     </div>
 
@@ -156,7 +176,7 @@
         const postId = urlParams.get("post_id"); // 기사 ID
 
         // API 및 웹훅 엔드포인트 설정 (뉴스 기사 로직에 맞게 변경 필요)
-        const proxyEndpoint = "https://news-review-system.mktg-95f.workers.dev/"; 
+        const proxyEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/"; 
         const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl"; // 실제 뉴스 시스템 웹훅으로 변경 필요
         const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15"; // 실제 뉴스 시스템 웹훅으로 변경 필요
 
@@ -171,6 +191,7 @@
         const titleInput = document.getElementById("title-input");
         const metaCompany = document.getElementById("meta-company");
         const metaDate = document.getElementById("meta-date");
+        const metaStatus = document.getElementById("meta-status"); // NEW: 상태 표시 요소
 
         let quill;
         let htmlContent = "";
@@ -182,7 +203,7 @@
             // Airtable 프록시 데이터 불러오기
             fetch(`${proxyEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`)
                 .then(res => {
-                    if (!res.ok) throw new Error("프로키 응답 오류");
+                    if (!res.ok) throw new Error("프록시 응답 오류: " + res.statusText);
                     return res.json();
                 })
                 .then(data => {
@@ -195,22 +216,31 @@
                     }
 
                     // ----------------------------------------------------
-                    // ✅ Airtable 필드명 변경 적용
+                    // ✅ Airtable 필드명 변경 적용 및 '기사 상태' 추가
                     // ----------------------------------------------------
-                    htmlContent = record["본문 html"] || "";
+                    htmlContent = record["기사 본문(html)"] || "";
                     currentContent = htmlContent;
 
-                    const companyName = record["기업"] || "";
+                    const companyName = record["기업"] || ""; // '언론사' 대신 '기업' 사용
                     const title = record["기사 제목"] || "제목 없음";
-                    // 예약 날짜 필드명을 '송출 희망일'로 변경
-                    const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : "";
-                    // Hashtag 필드명을 '핵심 키워드'로 변경
+                    const date = record["송출 희망일"] ? new Date(record["송출 희망일"]).toLocaleDateString("ko-KR") : ""; // '배포 예정일' 대신 '송출 희망일' 사용
                     const keywords = record["핵심 키워드"] || ""; 
+                    const status = record["기사 상태"] || "상태 정보 없음"; // NEW: '기사 상태' 필드 값 가져오기
 
                     metaCompany.innerText = companyName;
                     metaTitle.innerText = title;
                     titleInput.value = title;
                     metaDate.innerText = date ? `송출 희망일: ${date}` : '송출 희망일 미정';
+                    
+                    // NEW LOGIC: 상태 표시 및 스타일 적용
+                    metaStatus.innerText = `기사 상태: ${status}`;
+                    if (status.includes("대기")) {
+                        metaStatus.classList.add("status-pending");
+                    } else if (status.includes("승인")) {
+                        metaStatus.classList.add("status-approved");
+                    } else if (status.includes("수정")) {
+                        metaStatus.classList.add("status-retry");
+                    }
 
                     contentDisplay.innerHTML = `
                         <div style="max-width: 900px; margin: 0 auto;">
@@ -231,16 +261,23 @@
                                 [{ header: [1, 2, false] }],
                                 ["bold", "italic", "underline"],
                                 ["link", "blockquote", "code-block"],
-                                [{ list: "ordered" }, { list: "bullet" }]
+                                [{ list: "ordered" }, { list: "bullet" }],
+                                ["image"] // Quill 툴바에 이미지 버튼 추가
                             ]
                         }
                     });
+
+                    // Quill 에디터에 이미지 핸들러 연결
+                    quill.getModule('toolbar').addHandler('image', function() {
+                        triggerImageUpload(); // 이미지 버튼 클릭 시 파일 선택기 열기
+                    });
+
 
                     // base64 이미지 붙여넣기 차단 + 업로드
                     quill.getModule('clipboard').addMatcher('img', function (node, delta) {
                         const imageSrc = node.getAttribute('src');
                         if (imageSrc && imageSrc.startsWith('data:image')) {
-                            // base64 이미지를 Cloudinary에 업로드하고 URL을 삽입
+                            console.log("Base64 이미지 감지. Cloudinary 업로드 시도.");
                             uploadBase64ToCloudinary(imageSrc);
                             return new Delta(); // base64 삽입 차단
                         }
@@ -250,8 +287,8 @@
                     quill.clipboard.dangerouslyPasteHTML(htmlContent);
                 })
                 .catch(error => {
-                    console.error(error);
-                    loading.innerText = "⚠️ 콘텐츠 불러오기 오류";
+                    console.error("⚠️ 콘텐츠 불러오기 오류:", error);
+                    loading.innerText = `⚠️ 콘텐츠 불러오기 오류: ${error.message}`;
                 });
         }
 
@@ -299,7 +336,6 @@
         function sendWebhook(action) {
             const url = action === "approve" ? webhookApprove : webhookRetry;
             
-            // NOTE: alert() 대신 메시지 박스 또는 console.log 사용 권장
             if (!confirm(`정말 이 기사를 "${action === 'approve' ? '승인' : '수정 요청'}" 하시겠습니까?`)) {
                 return;
             }
@@ -308,23 +344,12 @@
                 post_id: postId,
                 company: company,
                 action: action,
-                // 기사 종류임을 명확히 하기 위해 추가
                 content_type: 'news' 
             };
 
             if (action === "approve") {
                 const title = titleInput.value || "제목 없음";
                 
-                // Content-display에서 키워드 요소를 가져옵니다.
-                const contentWithTags = document.createElement('div');
-                contentWithTags.innerHTML = contentDisplay.innerHTML;
-                
-                // 키워드 태그가 contentDisplay 내부에 감싸져 있다면, 순수 콘텐츠만 가져와야 합니다.
-                // 여기서는 HTML 콘텐츠만 전송하고 태그는 별도 필드로 보낼 필요가 있습니다.
-                // 하지만 현재 코드는 contentWithTags를 통해 감싸진 콘텐츠를 전송하도록 되어있으므로, 
-                // 기존 로직을 유지하면서 HTML만 전송하는 것을 권장합니다.
-                
-                // 태그를 제외하고 순수 본문만 전송하도록 로직 변경
                 const pureContentDiv = document.createElement('div');
                 pureContentDiv.innerHTML = currentContent;
 
@@ -342,7 +367,7 @@
                 body: JSON.stringify(payload)
             })
                 .then(res => {
-                    if (!res.ok) throw new Error('Network response was not ok');
+                    if (!res.ok) throw new Error('Network response was not ok: ' + res.statusText);
                     alert(`"${action === 'approve' ? '승인' : '수정 요청'}" 요청이 전송되었습니다.`);
                 })
                 .catch(error => {
@@ -352,7 +377,6 @@
         }
 
         function goHome() {
-            // 이 부분을 뉴스 목록 페이지로 이동하도록 수정해야 합니다.
             window.location.href = `news-list-page.html?company=${company}`;
         }
 
@@ -360,10 +384,15 @@
             document.getElementById("image-upload").click();
         }
 
-        // --- 이미지 업로드 로직 (변경 없음) ---
+        // --- 이미지 파일 선택 및 Cloudinary 업로드 ---
         document.getElementById("image-upload").addEventListener("change", function () {
             const file = this.files[0];
-            if (!file) return;
+            if (!file) {
+                console.log("파일이 선택되지 않았습니다.");
+                return;
+            }
+
+            console.log("이미지 파일 선택됨:", file.name, file.type);
 
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -377,27 +406,42 @@
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
 
+                    // 이미지를 JPEG으로 변환하여 업로드 (투명 배경 제거 및 용량 최적화)
                     canvas.toBlob(function (blob) {
                         const convertedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" });
+                        console.log("변환된 파일:", convertedFile.name, convertedFile.type, convertedFile.size);
+
                         const formData = new FormData();
                         formData.append("file", convertedFile);
-                        formData.append("upload_preset", "mktg_ai");
+                        formData.append("upload_preset", "mktg_ai"); // Cloudinary 업로드 프리셋
 
                         fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", {
                             method: "POST",
                             body: formData
                         })
-                            .then(res => res.json())
+                            .then(res => {
+                                if (!res.ok) {
+                                    return res.text().then(text => { throw new Error('Cloudinary upload failed: ' + text); });
+                                }
+                                return res.json();
+                            })
                             .then(result => {
                                 const url = result.secure_url;
                                 const alt = convertedFile.name.split(".")[0];
-                                const html = `<p style="text-align: center;"><img src="${url}" alt="${alt}" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`;
+                                console.log("Cloudinary 업로드 성공, URL:", url);
+
+                                // Quill 에디터에 이미지 삽입
                                 const range = quill.getSelection(true);
-                                quill.clipboard.dangerouslyPasteHTML(range.index, html);
+                                quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
+                                // quill.clipboard.dangerouslyPasteHTML(range.index, `<p style="text-align: center;"><img src="${url}" alt="${alt}" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`);
+                                
+                                // 파일 선택기 초기화 (같은 파일 재선택 가능하도록)
+                                document.getElementById("image-upload").value = '';
                             })
                             .catch(err => {
-                                console.error("이미지 업로드 실패:", err);
-                                alert("이미지 업로드에 실패했습니다.");
+                                console.error("❌ 이미지 Cloudinary 업로드 실패:", err);
+                                alert("이미지 업로드에 실패했습니다. 콘솔을 확인해 주세요.");
+                                document.getElementById("image-upload").value = '';
                             });
                     }, "image/jpeg", 0.92);
                 };
@@ -406,9 +450,11 @@
             reader.readAsDataURL(file);
         });
 
+        // --- Base64 이미지 붙여넣기 후 Cloudinary 업로드 ---
         function uploadBase64ToCloudinary(base64Data) {
+            console.log("Base64 이미지 Cloudinary 업로드 함수 호출됨.");
             const blob = base64ToBlob(base64Data);
-            const file = new File([blob], 'image.png', { type: blob.type });
+            const file = new File([blob], `pasted_image_${Date.now()}.png`, { type: blob.type }); // 고유 파일명 생성
 
             const formData = new FormData();
             formData.append("file", file);
@@ -418,19 +464,26 @@
                 method: "POST",
                 body: formData
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        return res.text().then(text => { throw new Error('Cloudinary base64 upload failed: ' + text); });
+                    }
+                    return res.json();
+                })
                 .then(result => {
                     const url = result.secure_url;
-                    const html = `<p style="text-align: center;"><img src="${url}" alt="붙여넣은 이미지" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`;
+                    console.log("Cloudinary (Base64) 업로드 성공, URL:", url);
                     const range = quill.getSelection(true);
-                    quill.clipboard.dangerouslyPasteHTML(range.index, html);
+                    quill.insertEmbed(range.index, 'image', url, Quill.sources.USER);
+                    // quill.clipboard.dangerouslyPasteHTML(range.index, `<p style="text-align: center;"><img src="${url}" alt="붙여넣은 이미지" class="responsive-image" width="800" style="max-width:100%; height:auto;" /></p>`);
                 })
                 .catch(err => {
-                    console.error("Cloudinary 업로드 실패", err);
-                    alert("이미지 업로드에 실패했습니다.");
+                    console.error("❌ Cloudinary (Base64) 업로드 실패:", err);
+                    alert("이미지 업로드에 실패했습니다. 콘솔을 확인해 주세요.");
                 });
         }
 
+        // --- Base64 to Blob 변환 함수 (변경 없음) ---
         function base64ToBlob(base64) {
             const parts = base64.split(";base64,");
             const contentType = parts[0].split(":")[1];
@@ -444,11 +497,11 @@
 
             return new Blob([uInt8Array], { type: contentType });
         }
-        
-        // alert() 대신 confirm()을 사용하여 사용자 피드백 제공.
+
+        // --- 이미지 클릭 시 삭제 (변경 없음) ---
         document.addEventListener("click", function (e) {
             if (e.target.tagName === "IMG") {
-                if (confirm("이 이미지를 삭제하시겠습니까?")) {
+                if (confirm("이 이미지를 삭제하시겠습니까? (Quill 에디터가 아닌 뷰어에서만 작동)")) {
                     const parent = e.target.closest("p") || e.target;
                     parent.remove();
                 }
