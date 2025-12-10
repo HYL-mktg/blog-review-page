@@ -126,6 +126,7 @@
     let quill;
     let htmlContent = "";
     let currentContent = "";
+    let airtableRecordId = null;  // ✅ 추가: Airtable 레코드 ID 저장용
 
     if (!company || !postId) {
       loading.innerHTML = "<span style='color:red;'>❌ URL에 company 또는 post_id가 불장했습니다.</span>";
@@ -137,6 +138,10 @@
         })
         .then(data => {
           loading.style.display = "none";
+
+          // ✅ 추가: 워커에서 내려온 Airtable 레코드 ID 저장
+          airtableRecordId = data.airtable_record_id || data.id || null;
+
           const record = data.fields;
 
           if (!record) {
@@ -243,6 +248,11 @@
         company: company,
         action: action
       };
+
+      // ✅ 추가: Airtable 레코드 ID를 Webhook 페이로드에 포함
+      if (airtableRecordId) {
+        payload.airtable_record_id = airtableRecordId;
+      }
 
       if (action === "approve") {
         const title = titleInput.value || "제목 없음";
