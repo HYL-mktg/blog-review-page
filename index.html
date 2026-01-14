@@ -24,6 +24,11 @@
   </style>
 </head>
 <body>
+  <div id="notice-bar" style="background: #f0f4f8; padding: 8px; font-size: 13px; text-align: left; border-bottom: 1px solid #d1d9e0; display: none;">
+  <span style="margin-left: 20px; color: #555;">📢 <b>최신 업데이트:</b> 
+    <a id="notice-link" href="#" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">불러오는 중...</a>
+  </span>
+</div>
   <div id="meta-display">
     <div class="meta-company" id="meta-company"></div>
     <div class="meta-title" id="meta-title"></div>
@@ -233,6 +238,32 @@
     function goHome() {
       window.location.href = `blog-list-page.html?company=${company}`;
     }
+    // 30분 완성 공지사항 자동 로드 기능
+function loadNotice() {
+  // 실제 본인의 GitHub Raw URL로 변경하세요.
+  // 예: https://raw.githubusercontent.com/유저명/저장소명/main/notice.txt
+  const noticeUrl = "https://raw.githubusercontent.com/YOUR_ID/YOUR_REPO/main/notice.txt";
+
+  fetch(noticeUrl)
+    .then(res => res.text())
+    .then(data => {
+      const [title, link] = data.split('|');
+      if (title && link) {
+        const noticeBar = document.getElementById("notice-bar");
+        const noticeLink = document.getElementById("notice-link");
+        
+        noticeLink.innerText = title.trim();
+        noticeLink.href = link.trim();
+        noticeBar.style.display = "block"; // 데이터가 있을 때만 노출
+      }
+    })
+    .catch(err => console.error("공지사항 로드 실패:", err));
+}
+
+// 페이지 로드 시 실행
+window.addEventListener('DOMContentLoaded', loadNotice);
+    
   </script>
 </body>
 </html>
+
