@@ -23,12 +23,12 @@
 
     /* 공지사항 바 스타일 개선 */
     #notice-bar {
-      background: #eff6ff;
+      background: #eff6ff; /* 연한 파란색 배경 */
       padding: 12px;
       font-size: 14px;
       text-align: center;
       border-bottom: 1px solid #dbeafe;
-      display: none;
+      display: none; /* 데이터 로드 전까지 숨김 */
       position: sticky;
       top: 0;
       z-index: 1000;
@@ -94,28 +94,34 @@
     let airtableRecordId = null;
     let isEditMode = false;
 
-    // 공지사항 로드 함수 (수정됨)
+    // ✅ 노션 링크가 기능하도록 보강된 공지 로드 함수
     function loadNotice() {
-      // ✅ 반드시 raw.githubusercontent.com 주소를 사용해야 합니다.
+      // GitHub에 있는 텍스트 파일 주소 (여기서 제목과 노션 링크를 가져옴)
       const noticeUrl = "https://raw.githubusercontent.com/HYL-mktg/blog-review-page/refs/heads/main/notice.txt";
 
-      fetch(noticeUrl + "?t=" + new Date().getTime()) // 캐시 방지
+      fetch(noticeUrl + "?t=" + new Date().getTime())
         .then(res => {
-          if (!res.ok) throw new Error("네트워크 응답 오류");
+          if (!res.ok) throw new Error("공지 파일을 찾을 수 없습니다.");
           return res.text();
         })
         .then(data => {
           if (!data.includes('|')) return;
-          const [title, link] = data.split('|');
+          
+          // 데이터 파싱 (제목 | 노션링크)
+          const parts = data.split('|');
+          const title = parts[0].trim();
+          const link = parts[1].trim();
+          
           if (title && link) {
             const noticeBar = document.getElementById("notice-bar");
             const noticeLink = document.getElementById("notice-link");
-            noticeLink.innerText = title.trim();
-            noticeLink.href = link.trim();
-            noticeBar.style.display = "block";
+            
+            noticeLink.innerText = title;
+            noticeLink.href = link; // 여기서 노션 링크로 연결됨
+            noticeBar.style.display = "block"; 
           }
         })
-        .catch(err => console.error("공지사항 로드 실패:", err));
+        .catch(err => console.error("공지사항 로드 중 오류:", err));
     }
 
     if (!company || !postId) {
@@ -148,7 +154,9 @@
             }
           });
           quill.clipboard.dangerouslyPasteHTML(htmlContent);
-          loadNotice(); // 공지사항 로드 실행
+          
+          // 데이터 로드 성공 후 공지사항 실행
+          loadNotice();
         });
     }
 
