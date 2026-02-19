@@ -92,6 +92,7 @@
     let htmlContent = "";
     let currentContent = "";
     let airtableRecordId = null;
+    let generationMethod = null; // 에어테이블 '생성 방식' 저장용
     let isEditMode = false;
 
     // ✅ 노션 링크가 기능하도록 보강된 공지 로드 함수
@@ -134,7 +135,7 @@
           airtableRecordId = data.airtable_record_id || data.id || null;
           const record = data.fields;
           if (!record) return;
-
+          generationMethod = record["생성 방식"] || "";
           htmlContent = record["내용(html)"] || "";
           currentContent = htmlContent;
 
@@ -250,6 +251,7 @@
       const payload = { post_id: postId, company: company, action: action };
       if (airtableRecordId) payload.airtable_record_id = airtableRecordId;
       if (action === "approve") {
+        payload["generation_method"] = generationMethod;
         payload["edited_title"] = titleInput.value;
         payload["edited_html"] = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
       }
@@ -264,3 +266,4 @@
   </script>
 </body>
 </html>
+
