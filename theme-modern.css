@@ -1,0 +1,137 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap");
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f5f7fb;
+  --text: #0e1116;
+  --text-soft: #4b5565;
+  --line: #d8deea;
+  --primary: #346cd7;
+  --primary-strong: #2b5cc0;
+  --primary-soft: #e9f0ff;
+  --shadow: 0 16px 40px rgba(17, 25, 40, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: radial-gradient(circle at 100% 0%, #eef3ff 0, #ffffff 42%);
+  color: var(--text);
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+}
+
+body {
+  line-height: 1.55;
+}
+
+h1,
+h2 {
+  color: #0b1220;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(1.9rem, 2vw + 1rem, 2.7rem);
+}
+
+h2 {
+  font-size: clamp(1.4rem, 1.4vw + 1rem, 2rem);
+}
+
+a {
+  color: var(--primary);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--primary-strong);
+}
+
+table {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th {
+  background: linear-gradient(180deg, #f8faff 0%, #eef3ff 100%) !important;
+  color: #0f2f67;
+  font-weight: 700;
+}
+
+th,
+td {
+  border-color: var(--line) !important;
+}
+
+tbody tr:hover {
+  background: var(--bg-soft);
+}
+
+button,
+.payment-button,
+.access-button,
+.home-button {
+  background: linear-gradient(135deg, var(--primary) 0%, #2455c4 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 20px rgba(52, 108, 215, 0.28);
+  font-weight: 600;
+}
+
+button:hover,
+.payment-button:hover,
+.access-button:hover,
+.home-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+input,
+select,
+textarea {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+}
+
+#meta-display,
+#content-display,
+#editor-container,
+.container,
+.form-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+#notice-bar {
+  border-bottom: 1px solid #c7d8ff !important;
+  background: linear-gradient(180deg, #f1f6ff 0%, #e7efff 100%) !important;
+}
+
+.new {
+  color: #1e4fbf !important;
+}
+
+.status-label,
+.method-label {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+}
+
+@media (max-width: 900px) {
+  body {
+    padding: 18px !important;
+  }
+
+  table {
+    width: 100% !important;
+  }
+}

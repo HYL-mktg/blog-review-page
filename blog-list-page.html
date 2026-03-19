@@ -1,31 +1,38 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>📄 HYL 블로그 콘텐츠 리스트</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>일반 콘텐츠 리스트</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: "Segoe UI", sans-serif;
       padding: 40px;
       text-align: center;
     }
+
     table {
       margin: 20px auto;
       border-collapse: collapse;
-      width: 90%;
+      width: 92%;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ccc;
       padding: 12px;
       text-align: left;
     }
+
     th {
       background: #f7f7f7;
     }
+
     .new {
-      color: red;
-      font-weight: bold;
+      color: #c02424;
+      font-weight: 700;
     }
+
     .status-label {
       display: inline-block;
       padding: 4px 8px;
@@ -33,77 +40,87 @@
       border-radius: 4px;
       margin-left: 6px;
     }
-    .status-검수대기 {
+
+    .status-review {
       background: #fff3cd;
       color: #856404;
     }
-    .status-변환중 {
+
+    .status-retry {
       background: #cce5ff;
       color: #004085;
     }
-    .status-완료 {
+
+    .status-done {
       background: #d4edda;
       color: #155724;
     }
 
-    /* 공통 배지 스타일 */
     .method-label {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      border: 1px solid rgba(0,0,0,0.06);
+      border: 1px solid rgba(0, 0, 0, 0.06);
       background: #f0f0f0;
       color: #424242;
       line-height: 1;
       vertical-align: middle;
     }
-    /* ✅ 선택지별 색상 매핑 (최종 세트) */
-    .method-정보성 { background:#e6f3ff; color:#0b5cab; }   /* 파란 계열 */
-    .method-양식글 { background:#fff0da; color:#8a5a00; }   /* 주황 계열 */
-    .method-이미지 { background:#e0f7f7; color:#006d6d; }   /* 민트 계열 */
-    .method-리뷰글 { background:#efe3f7; color:#6a1b9a; }   /* 보라 계열 */
-    .method-보도글 { background:#e8f5e9; color:#2e7d32; }   /* 초록 계열 */
-    .method-출처글 { background:#fde7ef; color:#ad1457; }   /* 핑크 계열 */
-    .method-default { background:#eeeeee; color:#424242; }  /* 기본 */
+
+    .method-default {
+      background: #eeeeee;
+      color: #424242;
+    }
   </style>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
-  <h2>📄 HYL 블로그 콘텐츠 리스트</h2>
+  <h2 id="title">일반 콘텐츠 리스트</h2>
   <table id="post-table">
     <thead>
       <tr>
-        <th>순번</th>
+        <th>번호</th>
         <th>제목</th>
-        <th>포스트 생성일</th>
+        <th>생성일</th>
         <th>생성 방식</th>
         <th>열람 여부</th>
       </tr>
     </thead>
     <tbody id="table-body">
-      <tr><td colspan="5">⏳ 로딩 중입니다...</td></tr>
+      <tr><td colspan="5">데이터를 불러오는 중입니다...</td></tr>
     </tbody>
   </table>
 
+  <script src="auth.js"></script>
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const company = urlParams.get("company");
+    const params = new URLSearchParams(window.location.search);
+    const { company, isPublic } = HYLAuth.resolveCompanyWithPublicOption({
+      params,
+      fallbackPath: "index-company.html",
+      redirectTo: "index.html"
+    });
 
-    const proxyEndpoint = "https://hyltest-airtable-content-list.mktg-95f.workers.dev/";
     const tableBody = document.getElementById("table-body");
+    const titleElement = document.getElementById("title");
 
-    // ✅ 최종 매핑 세트: '생성 방식' → CSS 클래스
+    if (!company) {
+      tableBody.innerHTML = `<tr><td colspan="5" style="color:#d22b2b">접근 권한이 없습니다.</td></tr>`;
+      throw new Error("Access denied");
+    }
+
+    titleElement.textContent = `${company} 일반 콘텐츠 리스트${isPublic ? " (공유 보기)" : ""}`;
+
     const METHOD_CLASS_MAP = {
-      "정보성": "method-정보성",
-      "양식글": "method-양식글",
-      "이미지": "method-이미지",
-      "리뷰글": "method-리뷰글",
-      "보도글": "method-보도글",
-      "출처글": "method-출처글",
+      "정보글": "method-info",
+      "지식글": "method-knowledge",
+      "이미지": "method-image",
+      "리뷰글": "method-review",
+      "보도글": "method-press",
+      "출처글": "method-source"
     };
 
-    // 혹시 cellFormat=json으로 바뀌어 {name:"..."} 형태가 올 때를 대비
     const getMethodName = (raw) => {
       if (!raw) return "-";
       if (typeof raw === "string") return raw;
@@ -111,66 +128,60 @@
       return String(raw);
     };
 
-    if (!company) {
-      tableBody.innerHTML = `<tr><td colspan="5" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
-    } else {
-      const url = `${proxyEndpoint}?company=${encodeURIComponent(company)}`;
+    fetch(`https://hyltest-airtable-content-list.mktg-95f.workers.dev/?company=${encodeURIComponent(company)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("데이터 요청 실패");
+        return res.json();
+      })
+      .then((data) => {
+        tableBody.innerHTML = "";
+        const records = Array.isArray(data?.records) ? data.records : [];
 
-      fetch(url)
-        .then(res => {
-          if (!res.ok) throw new Error("프로키 응답 실패");
-          return res.json();
-        })
-        .then(data => {
-          tableBody.innerHTML = "";
+        if (!records.length) {
+          tableBody.innerHTML = `<tr><td colspan="5">표시할 콘텐츠가 없습니다.</td></tr>`;
+          return;
+        }
 
-          if (!data.records || data.records.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5">📍 표시할 콘텐츠가 없습니다.</td></tr>`;
-            return;
+        records.forEach((record, index) => {
+          const fields = record.fields || {};
+          const contentTitle = fields["콘텐츠 제목"] || "-";
+          const postId = String(fields["post_id"] || "-");
+          const createdDate = postId.length >= 8
+            ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`
+            : "-";
+          const status = fields["상태"] || "검수 대기";
+          const methodName = getMethodName(fields["생성 방식"]);
+          const methodClass = METHOD_CLASS_MAP[methodName] || "method-default";
+
+          let statusLabel = "";
+          if (status === "검수 대기") {
+            statusLabel = `<span class="status-label status-review">검수 대기</span>`;
+          } else if (status === "변환중") {
+            statusLabel = `<span class="status-label status-retry">검수 완료</span>`;
+          } else if (status === "완료") {
+            statusLabel = `<span class="status-label status-done">업로드 완료</span>`;
           }
 
-          data.records.forEach((record, index) => {
-            const fields = record.fields;
-            const title = fields["콘텐츠 제목"] || "-";
-            const postId = fields["post_id"] || "-";
-            const createdDate = postId.length >= 8 ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}` : "-";
-            const status = fields["상태"] || "검수 대기";
+          const viewedKey = `viewed_${company}_${postId}`;
+          const isViewed = localStorage.getItem(viewedKey) === "true";
+          const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
+          const link = HYLAuth.buildDetailUrl("review-detail.html", company, postId);
 
-            // ✅ 생성 방식 처리(매핑 적용)
-            const methodName = getMethodName(fields["생성 방식"]);
-            const methodClass = METHOD_CLASS_MAP[methodName] || "method-default";
-
-            let statusLabel = "";
-            if (status === "검수 대기") {
-              statusLabel = `<span class="status-label status-검수대기">검수 대기</span>`;
-            } else if (status === "변환중") {
-              statusLabel = `<span class="status-label status-변환중">검수 완료</span>`;
-            } else if (status === "완료") {
-              statusLabel = `<span class="status-label status-완료">업로드 완료</span>`;
-            }
-
-            const viewedKey = `viewed_${company}_${postId}`;
-            const isViewed = localStorage.getItem(viewedKey) === "true";
-            const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
-
-            const link = `review-detail.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${index + 1}</td>
-              <td><a href="${link}">${title}</a></td>
-              <td>${createdDate}</td>
-              <td><span class="method-label ${methodClass}">${methodName}</span></td>
-              <td>${viewedLabel} ${statusLabel}</td>
-            `;
-            tableBody.appendChild(row);
-          });
-        })
-        .catch(error => {
-          console.error(error);
-          tableBody.innerHTML = `<tr><td colspan="5">⚠️ 데이터 로딩 실패</td></tr>`;
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><a href="${link}">${contentTitle}</a></td>
+            <td>${createdDate}</td>
+            <td><span class="method-label ${methodClass}">${methodName}</span></td>
+            <td>${viewedLabel} ${statusLabel}</td>
+          `;
+          tableBody.appendChild(row);
         });
-    }
+      })
+      .catch((error) => {
+        console.error(error);
+        tableBody.innerHTML = `<tr><td colspan="5">데이터를 불러오지 못했습니다.</td></tr>`;
+      });
   </script>
 </body>
 </html>

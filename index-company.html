@@ -3,92 +3,297 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>기업별 콘텐츠 관리</title>
+  <title>내 회사 콘텐츠 관리</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      padding: 40px;
+      padding: 36px;
+      max-width: 1100px;
+      margin: 0 auto;
     }
+
     h2 {
-      font-size: 28px;
-      margin-bottom: 24px;
+      margin-bottom: 8px;
       text-align: center;
     }
-    table {
-      width: 80%;
-      margin: 0 auto;
-      border-collapse: collapse;
+
+    .sub {
+      text-align: center;
+      color: #4b5563;
+      margin-bottom: 22px;
     }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 12px;
-      text-align: left;
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
     }
-    th {
-      background-color: #f7f7f7;
+
+    .card {
+      border: 1px solid #d5def0;
+      border-radius: 14px;
+      padding: 18px;
+      background: #fff;
     }
-    a {
-      text-decoration: none;
-      color: #0077cc;
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .count {
+      font-size: 30px;
       font-weight: 700;
+      margin: 0 0 12px;
     }
-    a:hover {
-      text-decoration: underline;
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      color: #fff;
+      background: #346cd7;
+      font-weight: 600;
+    }
+
+    .panel {
+      border: 1px solid #d5def0;
+      border-radius: 14px;
+      padding: 18px;
+      background: #fff;
+    }
+
+    .panel h3 {
+      margin-top: 0;
+    }
+
+    .panel table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .panel th, .panel td {
+      border: 1px solid #d8deea;
+      padding: 10px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .copy-btn {
+      padding: 7px 10px;
+      font-size: 12px;
     }
   </style>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
-  <h2>기업별 블로그 콘텐츠 관리</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>번호</th>
-        <th>기업명</th>
-        <th>콘텐츠 수</th>
-      </tr>
-    </thead>
-    <tbody id="company-table-body">
-      <tr><td colspan="3">데이터를 불러오는 중입니다...</td></tr>
-    </tbody>
-  </table>
+  <h2>내 회사 콘텐츠 관리</h2>
+  <p class="sub" id="account-label">로그인 정보를 확인하는 중입니다...</p>
 
+  <div class="cards">
+    <article class="card">
+      <h3>일반 콘텐츠</h3>
+      <p class="count" id="general-count">-</p>
+      <div class="actions">
+        <button type="button" id="general-btn">리스트 보기</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3>뉴스 콘텐츠 (최근 7일)</h3>
+      <p class="count" id="news-count">-</p>
+      <div class="actions">
+        <button type="button" id="news-btn">리스트 보기</button>
+      </div>
+    </article>
+  </div>
+
+  <section class="panel" id="admin-share-panel" style="display:none;">
+    <h3>회사별 공유 URL 설정 (관리자 전용)</h3>
+    <p class="small">체크된 항목은 로그인 없이 열람 가능한 공유 링크를 생성합니다.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>회사명</th>
+          <th>일반 공유</th>
+          <th>일반 URL</th>
+          <th>뉴스 공유</th>
+          <th>뉴스 URL</th>
+        </tr>
+      </thead>
+      <tbody id="admin-share-body">
+        <tr><td colspan="5">회사 목록을 불러오는 중입니다...</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script src="auth.js"></script>
   <script>
-    const tableBody = document.getElementById("company-table-body");
+    const auth = HYLAuth.requireAuth({ redirectTo: "index.html" });
+    if (!auth) {
+      throw new Error("Authentication required");
+    }
 
-    fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
-      .then((res) => {
-        if (!res.ok) throw new Error("데이터 요청 실패");
-        return res.json();
-      })
-      .then((records) => {
-        const counts = {};
+    const accountLabel = document.getElementById("account-label");
+    const generalCount = document.getElementById("general-count");
+    const newsCount = document.getElementById("news-count");
+    const generalBtn = document.getElementById("general-btn");
+    const newsBtn = document.getElementById("news-btn");
+    const adminPanel = document.getElementById("admin-share-panel");
+    const adminShareBody = document.getElementById("admin-share-body");
+    const company = auth.company;
+    const isAdmin = HYLAuth.isAdmin(auth);
 
-        records.forEach((record) => {
-          const name = record.fields?.["기업명"];
-          if (name) counts[name] = (counts[name] || 0) + 1;
+    accountLabel.textContent = `${company} | ${auth.id}${isAdmin ? " (관리자)" : ""}`;
+
+    generalBtn.addEventListener("click", () => {
+      window.location.href = HYLAuth.buildCompanyUrl("blog-list-page.html", company);
+    });
+
+    newsBtn.addEventListener("click", () => {
+      window.location.href = HYLAuth.buildCompanyUrl("blog-list-page-news.html", company);
+    });
+
+    function parsePostDate(postId) {
+      if (!postId || String(postId).length < 8) return null;
+      const source = String(postId).slice(0, 8);
+      if (!/^\d{8}$/.test(source)) return null;
+      const year = Number(source.slice(0, 4));
+      const month = Number(source.slice(4, 6)) - 1;
+      const day = Number(source.slice(6, 8));
+      const date = new Date(year, month, day);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function isWithinLast7Days(postId) {
+      const date = parsePostDate(postId);
+      if (!date) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const threshold = new Date(today);
+      threshold.setDate(threshold.getDate() - 6);
+      return date >= threshold && date <= today;
+    }
+
+    function copyText(value) {
+      navigator.clipboard.writeText(value)
+        .then(() => alert("URL이 복사되었습니다."))
+        .catch(() => alert("복사에 실패했습니다."));
+    }
+
+    function buildAbsoluteUrl(pathWithQuery) {
+      return `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}${pathWithQuery}`;
+    }
+
+    function renderShareRow(targetCompany) {
+      const isGeneralShared = HYLAuth.isShareEnabled(targetCompany, "general");
+      const isNewsShared = HYLAuth.isShareEnabled(targetCompany, "news");
+
+      const generalPath = HYLAuth.buildCompanyUrl("blog-list-page.html", targetCompany);
+      const newsPath = HYLAuth.buildCompanyUrl("blog-list-page-news.html", targetCompany);
+      const generalUrl = buildAbsoluteUrl(generalPath);
+      const newsUrl = buildAbsoluteUrl(newsPath);
+      const generalCell = isGeneralShared
+        ? `<button class="copy-btn" type="button" data-copy="${generalUrl}">복사</button><div class="small">${generalUrl}</div>`
+        : `<span class="small">공유 비활성</span>`;
+      const newsCell = isNewsShared
+        ? `<button class="copy-btn" type="button" data-copy="${newsUrl}">복사</button><div class="small">${newsUrl}</div>`
+        : `<span class="small">공유 비활성</span>`;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${targetCompany}</td>
+        <td><input type="checkbox" data-company="${targetCompany}" data-type="general" ${isGeneralShared ? "checked" : ""} /></td>
+        <td>${generalCell}</td>
+        <td><input type="checkbox" data-company="${targetCompany}" data-type="news" ${isNewsShared ? "checked" : ""} /></td>
+        <td>${newsCell}</td>
+      `;
+      return tr;
+    }
+
+    function setupAdminSharePanel(records) {
+      if (!isAdmin) return;
+      adminPanel.style.display = "block";
+
+      const companies = Array.from(new Set(
+        (records || [])
+          .map((record) => record.fields?.["기업명"])
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b, "ko"));
+
+      if (!companies.length) {
+        adminShareBody.innerHTML = `<tr><td colspan="5">회사 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+
+      adminShareBody.innerHTML = "";
+      companies.forEach((targetCompany) => {
+        adminShareBody.appendChild(renderShareRow(targetCompany));
+      });
+
+      adminShareBody.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) return;
+        const targetCompany = target.dataset.company;
+        const type = target.dataset.type;
+        if (!targetCompany || !type) return;
+        HYLAuth.setShareEnabled(targetCompany, type, target.checked);
+
+        const currentRow = target.closest("tr");
+        if (!currentRow) return;
+        const newRow = renderShareRow(targetCompany);
+        currentRow.replaceWith(newRow);
+      });
+
+      adminShareBody.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        const value = target.dataset.copy;
+        if (!value) return;
+        copyText(value);
+      });
+    }
+
+    Promise.all([
+      fetch(`https://hyltest-airtable-content-list.mktg-95f.workers.dev/?company=${encodeURIComponent(company)}`).then((res) => res.json()),
+      fetch("https://hyltest-airtable-news.mktg-95f.workers.dev/").then((res) => res.json()),
+      fetch("https://hyltest-airtable.mktg-95f.workers.dev/").then((res) => res.json())
+    ])
+      .then(([generalData, newsRecords, allRecords]) => {
+        const generalRecords = Array.isArray(generalData?.records) ? generalData.records : [];
+        generalCount.textContent = String(generalRecords.length);
+
+        const filteredNews = (Array.isArray(newsRecords) ? newsRecords : []).filter((record) => {
+          const fields = record?.fields || {};
+          return fields["기업명"] === company && isWithinLast7Days(fields["post_id"]);
         });
+        newsCount.textContent = String(filteredNews.length);
 
-        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, "ko"));
-
-        if (!sortedNames.length) {
-          tableBody.innerHTML = `<tr><td colspan="3">등록된 기업이 없습니다.</td></tr>`;
-          return;
+        setupAdminSharePanel(Array.isArray(allRecords) ? allRecords : []);
+      })
+      .catch((error) => {
+        console.error(error);
+        generalCount.textContent = "오류";
+        newsCount.textContent = "오류";
+        if (isAdmin) {
+          adminPanel.style.display = "block";
+          adminShareBody.innerHTML = `<tr><td colspan="5">공유 설정 데이터를 불러오지 못했습니다.</td></tr>`;
         }
-
-        tableBody.innerHTML = "";
-        sortedNames.forEach((name, index) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
-            <td>${counts[name]}</td>
-          `;
-          tableBody.appendChild(row);
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        tableBody.innerHTML = `<tr><td colspan="3">기업 목록 불러오기에 실패했습니다.</td></tr>`;
       });
   </script>
 </body>

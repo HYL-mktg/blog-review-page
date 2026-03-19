@@ -1,31 +1,38 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>📄 HYL 블로그 콘텐츠 리스트</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>공유 콘텐츠 리스트</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: "Segoe UI", sans-serif;
       padding: 40px;
       text-align: center;
     }
+
     table {
       margin: 20px auto;
       border-collapse: collapse;
-      width: 90%;
+      width: 92%;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ccc;
       padding: 12px;
       text-align: left;
     }
+
     th {
       background: #f7f7f7;
     }
+
     .new {
-      color: red;
-      font-weight: bold;
+      color: #c02424;
+      font-weight: 700;
     }
+
     .status-label {
       display: inline-block;
       padding: 4px 8px;
@@ -33,100 +40,117 @@
       border-radius: 4px;
       margin-left: 6px;
     }
-    .status-검수대기 {
+
+    .status-review {
       background: #fff3cd;
       color: #856404;
     }
-    .status-변환중 {
+
+    .status-retry {
       background: #cce5ff;
       color: #004085;
     }
-    .status-완료 {
+
+    .status-done {
       background: #d4edda;
       color: #155724;
     }
   </style>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
-  <h2>📄 HYL 블로그 콘텐츠 리스트</h2>
+  <h2 id="title">공유 콘텐츠 리스트</h2>
   <table id="post-table">
     <thead>
       <tr>
-        <th>순번</th>
+        <th>번호</th>
         <th>제목</th>
-        <th>포스트 생성일</th>
+        <th>생성일</th>
         <th>열람 여부</th>
       </tr>
     </thead>
     <tbody id="table-body">
-      <tr><td colspan="4">⏳ 로딩 중입니다...</td></tr>
+      <tr><td colspan="4">데이터를 불러오는 중입니다...</td></tr>
     </tbody>
   </table>
 
+  <script src="auth.js"></script>
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const company = urlParams.get("company");
+    const params = new URLSearchParams(window.location.search);
+    const { company, isPublic } = HYLAuth.resolveCompanyWithPublicOption({
+      params,
+      fallbackPath: "index-company.html",
+      redirectTo: "index.html"
+    });
+
     const tableBody = document.getElementById("table-body");
+    const titleElement = document.getElementById("title");
 
     if (!company) {
-      tableBody.innerHTML = `<tr><td colspan="4" style="color:red">❌ URL에 company 파라미터가 없습니다.</td></tr>`;
-    } else {
-      fetch("https://hyltest-airtable.mktg-95f.workers.dev/") // 🔒 Worker에서 전체 레코드 가져오기
-        .then(res => res.json())
-        .then(records => {
-          const filtered = records.filter(r => r.fields["기업명"] === company);
-          tableBody.innerHTML = "";
+      tableBody.innerHTML = `<tr><td colspan="4" style="color:#d22b2b">접근 권한이 없습니다.</td></tr>`;
+      throw new Error("Access denied");
+    }
 
-          if (filtered.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4">📭 표시할 콘텐츠가 없습니다.</td></tr>`;
-            return;
+    titleElement.textContent = `${company} 공유 콘텐츠 리스트${isPublic ? " (공유 보기)" : ""}`;
+
+    fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
+      .then((res) => {
+        if (!res.ok) throw new Error("데이터 요청 실패");
+        return res.json();
+      })
+      .then((records) => {
+        const filtered = (Array.isArray(records) ? records : [])
+          .filter((record) => record.fields?.["기업명"] === company)
+          .sort((a, b) => {
+            const aId = String(a.fields?.["post_id"] || "");
+            const bId = String(b.fields?.["post_id"] || "");
+            return bId.localeCompare(aId);
+          })
+          .slice(0, 30);
+
+        tableBody.innerHTML = "";
+        if (!filtered.length) {
+          tableBody.innerHTML = `<tr><td colspan="4">표시할 콘텐츠가 없습니다.</td></tr>`;
+          return;
+        }
+
+        filtered.forEach((record, index) => {
+          const fields = record.fields || {};
+          const contentTitle = fields["콘텐츠 제목"] || "-";
+          const postId = String(fields["post_id"] || "-");
+          const createdDate = postId.length >= 8
+            ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`
+            : "-";
+          const status = fields["상태"] || "검수 대기";
+
+          let statusLabel = "";
+          if (status === "검수 대기") {
+            statusLabel = `<span class="status-label status-review">검수 대기</span>`;
+          } else if (status === "변환중") {
+            statusLabel = `<span class="status-label status-retry">검수 완료</span>`;
+          } else if (status === "완료") {
+            statusLabel = `<span class="status-label status-done">업로드 완료</span>`;
           }
 
-          filtered
-            .sort((a, b) => {
-              const aId = a.fields["post_id"] || "";
-              const bId = b.fields["post_id"] || "";
-              return bId.localeCompare(aId); // post_id 기준 내림차순
-            })
-            .slice(0, 30)
-            .forEach((record, index) => {
-              const fields = record.fields;
-              const title = fields["콘텐츠 제목"] || "-";
-              const postId = fields["post_id"] || "-";
-              const createdDate = postId.length >= 8
-                ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`
-                : "-";
-              const status = fields["상태"] || "검수 대기";
+          const viewedKey = `viewed_${company}_${postId}`;
+          const isViewed = localStorage.getItem(viewedKey) === "true";
+          const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
+          const link = HYLAuth.buildDetailUrl("review-detail-shared.html", company, postId);
 
-              let statusLabel = "";
-              if (status === "검수 대기") {
-                statusLabel = `<span class="status-label status-검수대기">검수 대기</span>`;
-              } else if (status === "변환중") {
-                statusLabel = `<span class="status-label status-변환중">검수 완료</span>`;
-              } else if (status === "완료") {
-                statusLabel = `<span class="status-label status-완료">업로드 완료</span>`;
-              }
-
-              const viewedKey = `viewed_${company}_${postId}`;
-              const isViewed = localStorage.getItem(viewedKey) === "true";
-              const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
-              const link = `review-detail-shared.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
-
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${index + 1}</td>
-                <td><a href="${link}">${title}</a></td>
-                <td>${createdDate}</td>
-                <td>${viewedLabel} ${statusLabel}</td>
-              `;
-              tableBody.appendChild(row);
-            });
-        })
-        .catch(error => {
-          console.error(error);
-          tableBody.innerHTML = `<tr><td colspan="4">⚠️ Airtable 데이터 불러오기 실패</td></tr>`;
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><a href="${link}">${contentTitle}</a></td>
+            <td>${createdDate}</td>
+            <td>${viewedLabel} ${statusLabel}</td>
+          `;
+          tableBody.appendChild(row);
         });
-    }
+      })
+      .catch((error) => {
+        console.error(error);
+        tableBody.innerHTML = `<tr><td colspan="4">데이터를 불러오지 못했습니다.</td></tr>`;
+      });
   </script>
 </body>
 </html>

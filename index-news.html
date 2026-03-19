@@ -4,19 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>뉴스 상세 이동</title>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
+  <script src="auth.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const company = params.get("company");
     const postId = params.get("post_id");
+    const access = HYLAuth.resolveCompanyWithPublicOption({
+      params,
+      fallbackPath: "index-company.html",
+      redirectTo: "index.html"
+    });
 
-    if (company && postId) {
-      window.location.replace(
-        `review-detail-news.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`
-      );
+    if (!access.company || !postId) {
+      window.location.replace("index-company.html");
     } else {
-      window.location.replace("index.html");
+      const nextUrl = HYLAuth.buildDetailUrl("review-detail-news.html", access.company, postId);
+      window.location.replace(nextUrl);
     }
   </script>
 </body>
