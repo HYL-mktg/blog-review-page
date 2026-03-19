@@ -110,7 +110,7 @@
               const viewedKey = `viewed_${company}_${postId}`;
               const isViewed = localStorage.getItem(viewedKey) === "true";
               const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
-              const link = `index-shared.html?company=${encodeURIComponent(company)}&post_id=${postId}`;
+              const link = `review-detail-shared.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
 
               const row = document.createElement("tr");
               row.innerHTML = `

@@ -153,7 +153,7 @@
             const isViewed = localStorage.getItem(viewedKey) === "true";
             const viewedLabel = isViewed ? "열람됨" : "<span class='new'>new!</span>";
 
-            const link = `index.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
+            const link = `review-detail.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`;
 
             const row = document.createElement("tr");
             row.innerHTML = `

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>📁 HYL 콘텐츠 관리 – 기업 선택</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>공유 콘텐츠 기업 선택</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: "Segoe UI", sans-serif;
       padding: 40px;
     }
     h2 {
@@ -29,7 +30,7 @@
     a {
       text-decoration: none;
       color: #0077cc;
-      font-weight: bold;
+      font-weight: 700;
     }
     a:hover {
       text-decoration: underline;
@@ -37,44 +38,49 @@
   </style>
 </head>
 <body>
-  <h2>📁 기업별 '변환중' 콘텐츠 수</h2>
-
+  <h2>기업별 공유 콘텐츠</h2>
   <table>
     <thead>
       <tr>
-        <th>순번</th>
+        <th>번호</th>
         <th>기업명</th>
-        <th>변환중 콘텐츠 수</th>
+        <th>콘텐츠 수</th>
       </tr>
     </thead>
     <tbody id="company-table-body">
-      <tr><td colspan="3">⏳ 불러오는 중...</td></tr>
+      <tr><td colspan="3">데이터를 불러오는 중입니다...</td></tr>
     </tbody>
   </table>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+    const company = params.get("company");
+    const postId = params.get("post_id");
+
+    // Legacy support: old direct detail links keep working.
+    if (company && postId) {
+      window.location.replace(
+        `review-detail-shared.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`
+      );
+    }
+
     const tableBody = document.getElementById("company-table-body");
 
-    // ✅ Cloudflare Worker로부터 변환중 상태 데이터만 가져오기
     fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error("데이터 요청 실패");
         return res.json();
       })
-      .then(records => {
-        const counts = {}; // {기업명: '변환중' 수}
-
-        records.forEach(record => {
-          const name = record.fields["기업명"];
-          if (name) {
-            counts[name] = (counts[name] || 0) + 1;
-          }
+      .then((records) => {
+        const counts = {};
+        records.forEach((record) => {
+          const name = record.fields?.["기업명"];
+          if (name) counts[name] = (counts[name] || 0) + 1;
         });
 
-        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko'));
-
+        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, "ko"));
         if (!sortedNames.length) {
-          tableBody.innerHTML = `<tr><td colspan="3">📭 '변환중' 콘텐츠가 없습니다.</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="3">조회 가능한 콘텐츠가 없습니다.</td></tr>`;
           return;
         }
 
@@ -89,9 +95,9 @@
           tableBody.appendChild(row);
         });
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
-        tableBody.innerHTML = `<tr><td colspan="3">⚠️ 기업 목록 불러오기 실패</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="3">기업 목록 불러오기에 실패했습니다.</td></tr>`;
       });
   </script>
 </body>

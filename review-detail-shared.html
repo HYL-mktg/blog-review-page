@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>HYL 블로그 승인 시스템</title>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 40px; margin: 0; }
+    #editor-container, #content-display, #meta-display { max-width: 800px; margin: 20px auto; text-align: left; }
+    #editor-container { height: 400px; display: none; }
+    button { margin: 12px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 6px; border: 1px solid #ddd; background: #fff; transition: 0.2s; }
+    button:hover { background: #f0f0f0; }
+    #loading { font-size: 18px; color: #888; margin-top: 20px; }
+    #content-display { border: 1px solid #ccc; padding: 20px; background: #fafafa; min-height: 400px; }
+    .edit-buttons { display: none; }
+    #meta-display { margin-bottom: 10px; }
+    .meta-company { font-size: 18px; font-weight: bold; color: #333; }
+    .meta-title { font-size: 24px; font-weight: bold; margin-top: 6px; margin-bottom: 4px; }
+    #title-input { font-size: 24px; font-weight: bold; margin-top: 6px; margin-bottom: 4px; width: 100%; display: none; padding: 5px; border: 1px solid #ddd; }
+    .meta-date { font-size: 13px; color: #777; margin-bottom: 16px; }
+    .meta-tags { font-size: 14px; color: #555; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; }
+    .responsive-image { cursor: move; max-width: 100%; height: auto; }
+
+    /* 공지사항 바 스타일 개선 */
+    #notice-bar {
+      background: #eff6ff; /* 연한 파란색 배경 */
+      padding: 12px;
+      font-size: 14px;
+      text-align: center;
+      border-bottom: 1px solid #dbeafe;
+      display: none; /* 데이터 로드 전까지 숨김 */
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="notice-bar">
+    <span style="color: #1e40af;">📢 <b>새 소식:</b> 
+      <a id="notice-link" href="#" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: bold; margin-left: 5px;"></a>
+    </span>
+  </div>
+
+  <div id="meta-display">
+    <div class="meta-company" id="meta-company"></div>
+    <div class="meta-title" id="meta-title"></div>
+    <input type="text" id="title-input" />
+    <div class="meta-date" id="meta-date"></div>
+  </div>
+
+  <div id="loading">⏳ 불러오는 중입니다...</div>
+  <div id="content-display"></div>
+  <div id="editor-container"></div>
+
+  <div id="buttons" style="display:none;">
+    <button onclick="toggleEditMode()">✏️ 수정</button>
+    <button onclick="sendWebhook('approve')">✅ 승인</button>
+    <button onclick="sendWebhook('retry')">🔁 승인 취소</button>
+    <button onclick="goHome()">🏠 홈으로</button>
+  </div>
+
+  <div id="edit-buttons" class="edit-buttons">
+    <button onclick="applyEdit()">📝 수정 완료</button>
+    <button onclick="cancelEdit()">❌ 취소</button>
+    <button onclick="triggerImageUpload()">🖼️ 이미지 추가</button>
+  </div>
+
+  <input type="file" id="image-upload" accept="image/*" style="display:none;" />
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get("company");
+    const postId = urlParams.get("post_id");
+
+    const proxyEndpoint = "https://hyltest-airtable-content.mktg-95f.workers.dev/";
+    const webhookApprove = "https://hook.eu1.make.com/okhlmq986f82n94qvfyafsxpybx1pvdl";
+    const webhookRetry = "https://hook.eu1.make.com/lgbmpgnnaqljrfrzlahbviis82oyii15";
+
+    const loading = document.getElementById("loading");
+    const contentDisplay = document.getElementById("content-display");
+    const editorContainer = document.getElementById("editor-container");
+    const buttons = document.getElementById("buttons");
+    const editButtons = document.getElementById("edit-buttons");
+    const metaTitle = document.getElementById("meta-title");
+    const titleInput = document.getElementById("title-input");
+    const metaCompany = document.getElementById("meta-company");
+    const metaDate = document.getElementById("meta-date");
+
+    let quill;
+    let htmlContent = "";
+    let currentContent = "";
+    let airtableRecordId = null;
+    let generationMethod = null; // 에어테이블 '생성 방식' 저장용
+    let isEditMode = false;
+
+    // ✅ 노션 링크가 기능하도록 보강된 공지 로드 함수
+    function loadNotice() {
+      // GitHub에 있는 텍스트 파일 주소 (여기서 제목과 노션 링크를 가져옴)
+      const noticeUrl = "https://raw.githubusercontent.com/HYL-mktg/blog-review-page/refs/heads/main/notice.txt";
+
+      fetch(noticeUrl + "?t=" + new Date().getTime())
+        .then(res => {
+          if (!res.ok) throw new Error("공지 파일을 찾을 수 없습니다.");
+          return res.text();
+        })
+        .then(data => {
+          if (!data.includes('|')) return;
+          
+          // 데이터 파싱 (제목 | 노션링크)
+          const parts = data.split('|');
+          const title = parts[0].trim();
+          const link = parts[1].trim();
+          
+          if (title && link) {
+            const noticeBar = document.getElementById("notice-bar");
+            const noticeLink = document.getElementById("notice-link");
+            
+            noticeLink.innerText = title;
+            noticeLink.href = link; // 여기서 노션 링크로 연결됨
+            noticeBar.style.display = "block"; 
+          }
+        })
+        .catch(err => console.error("공지사항 로드 중 오류:", err));
+    }
+
+    if (!company || !postId) {
+      loading.innerHTML = "<span style='color:red;'>❌ URL에 정보가 부족합니다.</span>";
+    } else {
+      fetch(`${proxyEndpoint}?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`)
+        .then(res => res.json())
+        .then(data => {
+          loading.style.display = "none";
+          airtableRecordId = data.airtable_record_id || data.id || null;
+          const record = data.fields;
+          if (!record) return;
+          generationMethod = record["생성 방식"] || "";
+          htmlContent = record["내용(html)"] || "";
+          currentContent = htmlContent;
+
+          metaCompany.innerText = record["기업명"] || "";
+          metaTitle.innerText = record["콘텐츠 제목"] || "제목 없음";
+          titleInput.value = record["콘텐츠 제목"] || "제목 없음";
+          metaDate.innerText = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
+
+          contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${htmlContent}</div>`;
+          buttons.style.display = "block";
+
+          quill = new Quill("#editor-container", {
+            theme: "snow",
+            placeholder: "내용을 수정하세요...",
+            modules: {
+              toolbar: [[{ header: [1, 2, false] }], ["bold", "italic", "underline"], ["link", "blockquote"], [{ list: "ordered" }, { list: "bullet" }]]
+            }
+          });
+          quill.clipboard.dangerouslyPasteHTML(htmlContent);
+          
+          // 데이터 로드 성공 후 공지사항 실행
+          loadNotice();
+        });
+    }
+
+    function toggleEditMode() {
+      isEditMode = true;
+      editorContainer.style.display = "block";
+      contentDisplay.style.display = "none";
+      buttons.style.display = "none";
+      editButtons.style.display = "block";
+      metaTitle.style.display = "none";
+      titleInput.style.display = "block";
+    }
+
+    function applyEdit() {
+      isEditMode = false;
+      currentContent = quill.root.innerHTML;
+      metaTitle.innerText = titleInput.value;
+      contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
+    }
+
+    function cancelEdit() {
+      isEditMode = false;
+      editorContainer.style.display = "none";
+      contentDisplay.style.display = "block";
+      buttons.style.display = "block";
+      editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
+    }
+
+    document.addEventListener("contextmenu", function (e) {
+      if (!isEditMode) return;
+      if (e.target.tagName === "IMG") {
+        e.preventDefault();
+        if (confirm("이 이미지를 삭제하시겠습니까?")) {
+          const parent = e.target.closest("p") || e.target;
+          parent.remove();
+        }
+      }
+    });
+
+    document.addEventListener("click", function (e) {
+      if (e.target.tagName === "IMG" && !isEditMode) {
+        e.preventDefault();
+      }
+    }, true);
+
+    function triggerImageUpload() {
+      document.getElementById("image-upload").click();
+    }
+
+    document.getElementById("image-upload").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width; canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(function (blob) {
+            const formData = new FormData();
+            formData.append("file", blob, "image.jpg");
+            formData.append("upload_preset", "mktg_ai");
+            fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", { method: "POST", body: formData })
+              .then(res => res.json())
+              .then(result => {
+                const url = result.secure_url;
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, "image", url, Quill.sources.USER);
+              });
+          }, "image/jpeg", 0.92);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function sendWebhook(action) {
+      const url = action === "approve" ? webhookApprove : webhookRetry;
+      const payload = { post_id: postId, company: company, action: action };
+      if (airtableRecordId) payload.airtable_record_id = airtableRecordId;
+      if (action === "approve") {
+        payload["generation_method"] = generationMethod;
+        payload["edited_title"] = titleInput.value;
+        payload["edited_html"] = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+      }
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      .then(() => alert(`${action} 요청 완료`))
+      .catch(() => alert("오류 발생"));
+    }
+
+    function goHome() {
+      window.location.href = `blog-list-page-shared.html?company=${company}`;
+    }
+  </script>
+</body>
+</html>
+
+
+
