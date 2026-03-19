@@ -3,102 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>공유 콘텐츠 기업 선택</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      padding: 40px;
-    }
-    h2 {
-      font-size: 28px;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-    table {
-      width: 80%;
-      margin: 0 auto;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 12px;
-      text-align: left;
-    }
-    th {
-      background-color: #f7f7f7;
-    }
-    a {
-      text-decoration: none;
-      color: #0077cc;
-      font-weight: 700;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-  </style>
+  <title>공유 콘텐츠 이동</title>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
-  <h2>기업별 공유 콘텐츠</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>번호</th>
-        <th>기업명</th>
-        <th>콘텐츠 수</th>
-      </tr>
-    </thead>
-    <tbody id="company-table-body">
-      <tr><td colspan="3">데이터를 불러오는 중입니다...</td></tr>
-    </tbody>
-  </table>
-
+  <script src="auth.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const company = params.get("company");
     const postId = params.get("post_id");
+    const access = HYLAuth.resolveCompanyWithPublicOption({
+      params,
+      fallbackPath: "index-company.html",
+      redirectTo: "index.html"
+    });
 
-    // Legacy support: old direct detail links keep working.
-    if (company && postId) {
-      window.location.replace(
-        `review-detail-shared.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`
-      );
+    if (!access.company) {
+      window.location.replace("index-company.html");
+    } else if (postId) {
+      const nextUrl = HYLAuth.buildDetailUrl("review-detail-shared.html", access.company, postId);
+      window.location.replace(nextUrl);
+    } else {
+      const nextUrl = HYLAuth.buildCompanyUrl("blog-list-page-shared.html", access.company);
+      window.location.replace(nextUrl);
     }
-
-    const tableBody = document.getElementById("company-table-body");
-
-    fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
-      .then((res) => {
-        if (!res.ok) throw new Error("데이터 요청 실패");
-        return res.json();
-      })
-      .then((records) => {
-        const counts = {};
-        records.forEach((record) => {
-          const name = record.fields?.["기업명"];
-          if (name) counts[name] = (counts[name] || 0) + 1;
-        });
-
-        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, "ko"));
-        if (!sortedNames.length) {
-          tableBody.innerHTML = `<tr><td colspan="3">조회 가능한 콘텐츠가 없습니다.</td></tr>`;
-          return;
-        }
-
-        tableBody.innerHTML = "";
-        sortedNames.forEach((name, index) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><a href="blog-list-page-shared.html?company=${encodeURIComponent(name)}">${name}</a></td>
-            <td>${counts[name]}</td>
-          `;
-          tableBody.appendChild(row);
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        tableBody.innerHTML = `<tr><td colspan="3">기업 목록 불러오기에 실패했습니다.</td></tr>`;
-      });
   </script>
 </body>
 </html>

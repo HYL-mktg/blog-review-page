@@ -8,7 +8,6 @@
     body {
       font-family: "Segoe UI", sans-serif;
       margin: 0;
-      background-color: #f9f9f9;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -17,22 +16,38 @@
       padding: 24px;
       box-sizing: border-box;
     }
+
     header {
       position: absolute;
       top: 20px;
       right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+
+    #auth-badge {
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef3ff;
+      color: #1f3f8f;
+      border: 1px solid #cddcff;
+    }
+
     h1 {
       font-size: 32px;
       margin-bottom: 28px;
       text-align: center;
     }
+
     .button-container {
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
       justify-content: center;
     }
+
     button {
       padding: 14px 24px;
       font-size: 17px;
@@ -42,85 +57,103 @@
       color: #fff;
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
+
     button:hover {
       transform: translateY(-1px);
       opacity: 0.92;
     }
+
     .pay-btn {
       background: #2b9348;
     }
+
     .main-btn {
       background: #0077cc;
     }
+
     .sub-btn {
       background: #1d4ed8;
     }
   </style>
+  <link rel="stylesheet" href="theme-modern.css" />
 </head>
 <body>
   <header>
-    <button class="pay-btn" onclick="location.href='payment.html'">결제</button>
+    <span id="auth-badge">로그인 필요</span>
+    <button id="auth-btn" class="sub-btn" type="button" onclick="handleAuthClick()">로그인</button>
+    <button class="pay-btn" type="button" onclick="location.href='payment.html'">결제</button>
   </header>
 
   <h1>HYL 콘텐츠 검토 허브</h1>
 
   <div class="button-container">
-    <button class="main-btn" onclick="loginWithAccount()">AI 콘텐츠 검토</button>
-    <button class="sub-btn" onclick="location.href='press-form.html'">보도자료 생성</button>
-    <button class="sub-btn" onclick="location.href='blog-list-page-news.html?company=하이쓰리디'">뉴스 콘텐츠</button>
+    <button class="main-btn" type="button" onclick="goContentReview()">AI 콘텐츠 검토</button>
+    <button class="sub-btn" type="button" onclick="location.href='press-form.html'">보도자료 생성</button>
+    <button class="sub-btn" type="button" onclick="goNewsReview()">뉴스 콘텐츠 검토</button>
   </div>
 
+  <script src="auth.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const company = params.get("company");
+    const companyParam = params.get("company");
     const postId = params.get("post_id");
 
-    // Legacy support: keep old direct links working.
-    if (company && postId) {
+    // Legacy support for old detail links.
+    if (companyParam && postId) {
       window.location.replace(
-        `review-detail.html?company=${encodeURIComponent(company)}&post_id=${encodeURIComponent(postId)}`
+        `review-detail.html?company=${encodeURIComponent(companyParam)}&post_id=${encodeURIComponent(postId)}`
       );
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
-      const token = sessionStorage.getItem("token");
-      if (token) {
-        window.location.href = "index-company.html";
+    const authBadge = document.getElementById("auth-badge");
+    const authBtn = document.getElementById("auth-btn");
+
+    function updateAuthUI() {
+      const auth = HYLAuth.getAuth();
+      if (!auth) {
+        authBadge.textContent = "로그인 필요";
+        authBtn.textContent = "로그인";
+        return;
       }
-    });
+      authBadge.textContent = `${auth.company} | ${auth.id}${HYLAuth.isAdmin(auth) ? " (관리자)" : ""}`;
+      authBtn.textContent = "로그아웃";
+    }
 
-    async function loginWithAccount() {
-      const id = prompt("아이디를 입력해 주세요.");
-      if (!id) return;
+    async function handleAuthClick() {
+      const current = HYLAuth.getAuth();
+      if (current) {
+        HYLAuth.clearAuth();
+        updateAuthUI();
+        alert("로그아웃되었습니다.");
+        return;
+      }
 
-      const password = prompt("비밀번호를 입력해 주세요.");
-      if (!password) return;
-
-      try {
-        const response = await fetch("https://hyltest-login.mktg-95f.workers.dev/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, password })
-        });
-
-        if (response.status === 200) {
-          const result = await response.json();
-          sessionStorage.setItem("token", result.token || "");
-          sessionStorage.setItem("id", id);
-          window.location.href = "index-company.html";
-          return;
-        }
-
-        if (response.status === 401) {
-          alert("아이디 또는 비밀번호가 올바르지 않습니다.");
-          return;
-        }
-
-        alert(`로그인 서버 오류: ${response.status}`);
-      } catch (error) {
-        alert(`네트워크 오류: ${error.message}`);
+      const auth = await HYLAuth.loginWithPrompt();
+      if (auth) {
+        updateAuthUI();
+        alert(`${auth.company} 계정으로 로그인되었습니다.`);
       }
     }
+
+    function goContentReview() {
+      const auth = HYLAuth.getAuth();
+      if (!auth) {
+        alert("로그인 후 이용해 주세요.");
+        return;
+      }
+      window.location.href = "index-company.html";
+    }
+
+    function goNewsReview() {
+      const auth = HYLAuth.getAuth();
+      if (!auth) {
+        alert("로그인 후 이용해 주세요.");
+        return;
+      }
+      window.location.href = "blog-list-page-news.html";
+    }
+
+    updateAuthUI();
   </script>
 </body>
 </html>
