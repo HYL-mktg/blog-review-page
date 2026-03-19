@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>📁 HYL 콘텐츠 관리 – 기업 선택</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>기업별 콘텐츠 관리</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: "Segoe UI", sans-serif;
       padding: 40px;
     }
     h2 {
@@ -29,7 +30,7 @@
     a {
       text-decoration: none;
       color: #0077cc;
-      font-weight: bold;
+      font-weight: 700;
     }
     a:hover {
       text-decoration: underline;
@@ -37,64 +38,58 @@
   </style>
 </head>
 <body>
-  <h2>📁 기업별 블로그 콘텐츠 관리</h2>
-
+  <h2>기업별 블로그 콘텐츠 관리</h2>
   <table>
     <thead>
       <tr>
-        <th>순번</th>
+        <th>번호</th>
         <th>기업명</th>
         <th>콘텐츠 수</th>
       </tr>
     </thead>
     <tbody id="company-table-body">
-      <tr><td colspan="3">⏳ 불러오는 중...</td></tr>
+      <tr><td colspan="3">데이터를 불러오는 중입니다...</td></tr>
     </tbody>
   </table>
 
   <script>
-    const apiKey = "patfUlX3SlpQmrDyM.11b3b59e8b64449690a1e0eb3fa4e735c7278ff657ec65c46f74b5be39691873"; // ← Airtable API Key로 교체
-    const baseId = "appzPMEgLj1HAFx0U";
-    const tableName = "AI 생성 결과";
-
     const tableBody = document.getElementById("company-table-body");
 
-    fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?fields[]=기업명&maxRecords=1000`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-      const counts = {}; // {기업명: 개수}
+    fetch("https://hyltest-airtable.mktg-95f.workers.dev/")
+      .then((res) => {
+        if (!res.ok) throw new Error("데이터 요청 실패");
+        return res.json();
+      })
+      .then((records) => {
+        const counts = {};
 
-      data.records.forEach(record => {
-        const name = record.fields["기업명"];
-        if (name) {
-          counts[name] = (counts[name] || 0) + 1;
+        records.forEach((record) => {
+          const name = record.fields?.["기업명"];
+          if (name) counts[name] = (counts[name] || 0) + 1;
+        });
+
+        const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, "ko"));
+
+        if (!sortedNames.length) {
+          tableBody.innerHTML = `<tr><td colspan="3">등록된 기업이 없습니다.</td></tr>`;
+          return;
         }
+
+        tableBody.innerHTML = "";
+        sortedNames.forEach((name, index) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
+            <td>${counts[name]}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        tableBody.innerHTML = `<tr><td colspan="3">기업 목록 불러오기에 실패했습니다.</td></tr>`;
       });
-
-      const sortedNames = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko'));
-
-      if (!sortedNames.length) {
-        tableBody.innerHTML = `<tr><td colspan="3">📭 등록된 기업이 없습니다.</td></tr>`;
-        return;
-      }
-
-      tableBody.innerHTML = "";
-      sortedNames.forEach((name, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td><a href="blog-list-page.html?company=${encodeURIComponent(name)}">${name}</a></td>
-          <td>${counts[name]}</td>
-        `;
-        tableBody.appendChild(row);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      tableBody.innerHTML = `<tr><td colspan="3">⚠️ 기업 목록 불러오기 실패</td></tr>`;
-    });
   </script>
 </body>
 </html>
