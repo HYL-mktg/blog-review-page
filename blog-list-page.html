@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -76,6 +77,7 @@
   </style>
   <link rel="stylesheet" href="theme-modern.css" />
 </head>
+
 <body>
   <h2 id="title">일반 콘텐츠 리스트</h2>
   <table id="post-table">
@@ -89,7 +91,9 @@
       </tr>
     </thead>
     <tbody id="table-body">
-      <tr><td colspan="5">데이터를 불러오는 중입니다...</td></tr>
+      <tr>
+        <td colspan="5">데이터를 불러오는 중입니다...</td>
+      </tr>
     </tbody>
   </table>
 
@@ -146,10 +150,22 @@
           const fields = record.fields || {};
           const contentTitle = fields["콘텐츠 제목"] || "-";
           const postId = String(fields["post_id"] || "-");
-          const createdDate = postId.length >= 8
-            ? `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`
-            : "-";
+
+          // 날짜 추출 로직 개선
+          let createdDate = "-";
+          if (postId.includes("-") && postId.includes("T")) {
+            // 1. ISO 패턴 대응: "2026-03-20T03:02:50..." -> "2026-03-20"
+            createdDate = postId.split("T")[0];
+          } else if (postId.length >= 8 && !isNaN(postId.slice(0, 8))) {
+            // 2. 기존 숫자 패턴 대응: "20260319..." -> "2026-03-19"
+            createdDate = `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`;
+          } else {
+            // 3. 기타 예외 케이스 (앞에 10자만 자르기 등)
+            createdDate = postId.substring(0, 10);
+          }
+
           const status = fields["상태"] || "검수 대기";
+
           const methodName = getMethodName(fields["생성 방식"]);
           const methodClass = METHOD_CLASS_MAP[methodName] || "method-default";
 
@@ -184,4 +200,5 @@
       });
   </script>
 </body>
+
 </html>
