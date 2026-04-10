@@ -257,6 +257,29 @@ textarea {
   margin: 0 auto;
 }
 
+/* ── HTML 소스 에디터 ────────────────────────────────────────── */
+#html-editor {
+  display: none;
+  width: 100%;
+  max-width: 800px;
+  height: 500px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  padding: 20px 24px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-top: none !important;
+  outline: none;
+  resize: vertical;
+  background: #1a1f2e;
+  color: #e2e8f0;
+  border-bottom-left-radius: 16px !important;
+  border-bottom-right-radius: 16px !important;
+  box-sizing: border-box;
+  box-shadow: var(--shadow);
+}
+
 /* ── 수정 모드 인디케이터 배지 ──────────────────────────────── */
 #edit-mode-badge {
   display: none;
