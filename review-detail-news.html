@@ -52,6 +52,7 @@
   <div id="editor-wrapper">
     <div id="editor-container"></div>
   </div>
+  <textarea id="html-editor" spellcheck="false"></textarea>
 
   <div id="buttons" style="display:none;">
     <button onclick="toggleEditMode()">✏️ 수정</button>
@@ -64,6 +65,7 @@
     <button id="btn-apply" onclick="applyEdit()">📝 수정 완료</button>
     <button id="btn-cancel" onclick="cancelEdit()">❌ 취소</button>
     <button onclick="triggerImageUpload()">🖼️ 이미지 추가</button>
+    <button id="btn-html-toggle" onclick="toggleHtmlMode()">📋 HTML 편집</button>
   </div>
 
   <input type="file" id="image-upload" accept="image/*" style="display:none;" />
@@ -111,6 +113,7 @@
     let airtableRecordId = null;
     let generationMethod = null;
     let isEditMode = false;
+    let isHtmlMode = false;
 
     // ✅ 공지 로드 함수 (신규 코드 기능)
     function loadNotice() {
@@ -197,9 +200,37 @@
       metaDisplay.classList.add("editing");
     }
 
+    function toggleHtmlMode() {
+      const htmlEditor = document.getElementById("html-editor");
+      const btn = document.getElementById("btn-html-toggle");
+      if (!isHtmlMode) {
+        htmlEditor.value = quill.root.innerHTML;
+        htmlEditor.style.display = "block";
+        editorWrapper.style.display = "none";
+        isHtmlMode = true;
+        btn.textContent = "✏️ 비주얼 편집";
+      } else {
+        quill.clipboard.dangerouslyPasteHTML(htmlEditor.value);
+        htmlEditor.style.display = "none";
+        editorWrapper.style.display = "block";
+        isHtmlMode = false;
+        btn.textContent = "📋 HTML 편집";
+      }
+    }
+
     function applyEdit() {
+      const htmlEditor = document.getElementById("html-editor");
+      if (isHtmlMode) {
+        currentContent = htmlEditor.value;
+        quill.clipboard.dangerouslyPasteHTML(currentContent);
+        htmlEditor.style.display = "none";
+        editorWrapper.style.display = "block";
+        document.getElementById("btn-html-toggle").textContent = "📋 HTML 편집";
+        isHtmlMode = false;
+      } else {
+        currentContent = quill.root.innerHTML;
+      }
       isEditMode = false;
-      currentContent = quill.root.innerHTML;
       metaTitle.innerText = titleInput.value;
       contentDisplay.innerHTML = currentContent;
       editorWrapper.style.display = "none";
@@ -213,6 +244,12 @@
     }
 
     function cancelEdit() {
+      if (isHtmlMode) {
+        document.getElementById("html-editor").style.display = "none";
+        editorWrapper.style.display = "block";
+        document.getElementById("btn-html-toggle").textContent = "📋 HTML 편집";
+        isHtmlMode = false;
+      }
       isEditMode = false;
       editorWrapper.style.display = "none";
       contentDisplay.style.display = "block";
