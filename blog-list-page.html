@@ -149,20 +149,28 @@
         records.forEach((record, index) => {
           const fields = record.fields || {};
           const contentTitle = fields["콘텐츠 제목"] || "-";
-          const postId = String(fields["post_id"] || "-");
+// 기존의 createdDate 로직을 아래 코드로 교체하세요.
+const postId = String(fields["post_id"] || "-");
 
-          // 날짜 추출 로직 개선
-          let createdDate = "-";
-          if (postId.includes("-") && postId.includes("T")) {
-            // 1. ISO 패턴 대응: "2026-03-20T03:02:50..." -> "2026-03-20"
-            createdDate = postId.split("T")[0];
-          } else if (postId.length >= 8 && !isNaN(postId.slice(0, 8))) {
-            // 2. 기존 숫자 패턴 대응: "20260319..." -> "2026-03-19"
-            createdDate = `${postId.slice(0, 4)}-${postId.slice(4, 6)}-${postId.slice(6, 8)}`;
-          } else {
-            // 3. 기타 예외 케이스 (앞에 10자만 자르기 등)
-            createdDate = postId.substring(0, 10);
-          }
+let createdDate = "-";
+
+// 1. 하이픈이 이미 포함된 경우 (예: 2026-03-20T...)
+if (postId.includes("-") && postId.indexOf("-") === 4) {
+    createdDate = postId.substring(0, 10); // "2026-03-20" 까지만 추출
+} 
+// 2. 붙어있는 숫자 패턴인 경우 (예: 20260319-...)
+else if (postId.length >= 8) {
+    const year = postId.substring(0, 4);
+    const month = postId.substring(4, 6);
+    const day = postId.substring(6, 8);
+    
+    // 월과 일이 숫자인지 확인 (비정상 데이터 방지)
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        createdDate = `${year}-${month}-${day}`;
+    } else {
+        createdDate = postId.substring(0, 10); // 형식이 다르면 그냥 앞글자 노출
+    }
+}
 
           const status = fields["상태"] || "검수 대기";
 
