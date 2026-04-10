@@ -111,6 +111,110 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+/* ── 상세 페이지: 메타 + 콘텐츠 카드 연결 ─────────────────── */
+#meta-display {
+  padding: 28px 32px 22px !important;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.meta-company {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 6px !important;
+}
+
+.meta-title {
+  font-size: clamp(1.25rem, 2vw, 1.6rem) !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  color: #0b1220 !important;
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
+}
+
+#title-input {
+  font-size: clamp(1.25rem, 2vw, 1.6rem) !important;
+  font-weight: 700 !important;
+  padding: 8px 12px !important;
+  width: 100% !important;
+  margin-bottom: 10px !important;
+}
+
+.meta-date {
+  font-size: 13px !important;
+  color: var(--text-soft) !important;
+  margin-bottom: 0 !important;
+}
+
+.meta-tags {
+  font-size: 13px !important;
+  color: var(--primary) !important;
+  border-top: 1px solid var(--line) !important;
+  margin-top: 20px !important;
+  padding-top: 14px !important;
+}
+
+#content-display {
+  overflow: hidden;
+  padding: 28px 32px 36px !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: none !important;
+  min-height: 300px !important;
+  line-height: 1.85 !important;
+  font-size: 15px !important;
+  color: #1a2030 !important;
+}
+
+/* 핵심: 이미지 오버플로우 방지 */
+#content-display img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  border-radius: 8px;
+  margin: 16px auto;
+}
+
+#editor-container {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: none !important;
+}
+
+/* ── 버튼 영역 ────────────────────────────────────────────── */
+#buttons,
+#edit-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px auto !important;
+  max-width: 800px;
+  padding: 0 !important;
+}
+
+#buttons button,
+#edit-buttons button {
+  margin: 0 !important;
+  min-width: 110px;
+  padding: 11px 20px !important;
+  font-size: 14px !important;
+}
+
+/* ── 로딩 텍스트 ──────────────────────────────────────────── */
+#loading {
+  font-size: 15px !important;
+  color: var(--text-soft) !important;
+  padding: 40px 0;
+}
+
+/* ── 공지바 ───────────────────────────────────────────────── */
 #notice-bar {
   border-bottom: 1px solid #c7d8ff !important;
   background: linear-gradient(180deg, #f1f6ff 0%, #e7efff 100%) !important;
@@ -133,5 +237,13 @@ textarea {
 
   table {
     width: 100% !important;
+  }
+
+  #meta-display {
+    padding: 20px 20px 16px !important;
+  }
+
+  #content-display {
+    padding: 20px 20px 28px !important;
   }
 }
