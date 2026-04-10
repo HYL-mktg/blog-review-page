@@ -154,7 +154,7 @@
           metaDate.innerText = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
 
           contentDisplay.innerHTML = htmlContent;
-          buttons.style.display = "block";
+          buttons.style.display = "flex";
 
           quill = new Quill("#editor-container", {
             theme: "snow",
@@ -175,7 +175,7 @@
       editorContainer.style.display = "block";
       contentDisplay.style.display = "none";
       buttons.style.display = "none";
-      editButtons.style.display = "block";
+      editButtons.style.display = "flex";
       metaTitle.style.display = "none";
       titleInput.style.display = "block";
     }
@@ -187,7 +187,7 @@
       contentDisplay.innerHTML = currentContent;
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
-      buttons.style.display = "block";
+      buttons.style.display = "flex";
       editButtons.style.display = "none";
       metaTitle.style.display = "block";
       titleInput.style.display = "none";
@@ -197,7 +197,7 @@
       isEditMode = false;
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
-      buttons.style.display = "block";
+      buttons.style.display = "flex";
       editButtons.style.display = "none";
       metaTitle.style.display = "block";
       titleInput.style.display = "none";

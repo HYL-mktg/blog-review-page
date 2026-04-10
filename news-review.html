@@ -281,7 +281,7 @@
                     `;
                     // ----------------------------------------------------
 
-                    buttons.style.display = "block";
+                    buttons.style.display = "flex";
                     localStorage.setItem(`viewed_${company}_${postId}`, "true");
 
                     quill = new Quill("#editor-container", {
@@ -331,7 +331,7 @@
             editorContainer.style.display = "block";
             contentDisplay.style.display = "none";
             buttons.style.display = "none";
-            editButtons.style.display = "block";
+            editButtons.style.display = "flex";
             metaTitle.style.display = "none";
             titleInput.style.display = "block";
             quill.clipboard.dangerouslyPasteHTML(currentContent);
@@ -353,7 +353,7 @@
 
             editorContainer.style.display = "none";
             contentDisplay.style.display = "block";
-            buttons.style.display = "block";
+            buttons.style.display = "flex";
             editButtons.style.display = "none";
             metaTitle.style.display = "block";
             titleInput.style.display = "none";
@@ -362,7 +362,7 @@
         function cancelEdit() {
             editorContainer.style.display = "none";
             contentDisplay.style.display = "block";
-            buttons.style.display = "block";
+            buttons.style.display = "flex";
             editButtons.style.display = "none";
             metaTitle.style.display = "block";
             titleInput.style.display = "none";

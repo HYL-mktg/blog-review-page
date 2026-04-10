@@ -253,7 +253,6 @@ textarea {
 /* ── 버튼 영역 카드 ─────────────────────────────────────────── */
 #buttons,
 #edit-buttons {
-  display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
@@ -265,6 +264,11 @@ textarea {
   border-top: none !important;
   border-radius: 0 0 16px 16px !important;
   box-shadow: var(--shadow);
+}
+
+/* 수정 모드 전용 요소: 기본 숨김 (JS가 flex로 토글) */
+#edit-buttons {
+  display: none;
 }
 
 #buttons button,
