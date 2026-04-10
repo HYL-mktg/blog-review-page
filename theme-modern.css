@@ -250,10 +250,87 @@ textarea {
   border-top: none !important;
 }
 
+/* ── 에디터 래퍼: 툴바 + 에디터 함께 숨기기 ────────────────── */
+#editor-wrapper {
+  display: none;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── 수정 모드 인디케이터 배지 ──────────────────────────────── */
+#edit-mode-badge {
+  display: none;
+  max-width: 800px;
+  margin: 0 auto 0;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: left;
+}
+
+/* 수정 모드 진입 시 meta 카드 상단 amber 강조 */
+#meta-display.editing {
+  border-top: 3px solid #f59e0b !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* ── Quill 툴바 버튼: 전역 파란 스타일 제거 ─────────────────── */
+.ql-snow.ql-toolbar button {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+  color: inherit !important;
+}
+.ql-snow.ql-toolbar button .ql-stroke {
+  stroke: #64748b !important;
+}
+.ql-snow.ql-toolbar button .ql-fill {
+  fill: #64748b !important;
+}
+/* active/hover: 파란 배경 + 흰 아이콘으로 명확히 구분 */
+.ql-snow.ql-toolbar button:hover,
+.ql-snow.ql-toolbar button.ql-active {
+  background: var(--primary) !important;
+}
+.ql-snow.ql-toolbar button:hover .ql-stroke,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke {
+  stroke: #fff !important;
+}
+.ql-snow.ql-toolbar button:hover .ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-fill {
+  fill: #fff !important;
+}
+.ql-snow.ql-toolbar .ql-picker-label {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+}
+.ql-snow.ql-toolbar .ql-picker-label .ql-stroke {
+  stroke: #64748b !important;
+}
+
+/* ── 수정 전용 버튼 색상 분기 ───────────────────────────────── */
+#btn-apply {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.28) !important;
+}
+#btn-apply:hover { filter: brightness(1.06) !important; }
+
+#btn-cancel {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  box-shadow: 0 8px 20px rgba(107, 114, 128, 0.22) !important;
+}
+#btn-cancel:hover { filter: brightness(1.06) !important; }
+
 /* ── 버튼 영역 카드 ─────────────────────────────────────────── */
 #buttons,
 #edit-buttons {
-  display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
@@ -265,6 +342,11 @@ textarea {
   border-top: none !important;
   border-radius: 0 0 16px 16px !important;
   box-shadow: var(--shadow);
+}
+
+/* 수정 모드 전용 요소: 기본 숨김 (JS가 flex로 토글) */
+#edit-buttons {
+  display: none;
 }
 
 #buttons button,

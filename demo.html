@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>[데모] HYL 블로그 승인 시스템</title>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 32px 24px; margin: 0; }
+    #editor-container, #content-display, #meta-display { max-width: 800px; margin: 0 auto; text-align: left; }
+    #editor-container { height: 500px; margin-top: 0; }
+    #content-display { background: #fff; }
+    .edit-buttons { display: none; }
+    #title-input { display: none; }
+
+    /* ── 에디터 래퍼: 툴바도 함께 숨기기 위한 컨테이너 ── */
+    #editor-wrapper {
+      display: none;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* 데모 배너 */
+    #demo-banner {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #92400e;
+      max-width: 800px;
+      margin: 0 auto 16px;
+      text-align: left;
+    }
+
+    /* ── 수정 모드 인디케이터 ── */
+    #edit-mode-badge {
+      display: none;
+      max-width: 800px;
+      margin: 0 auto 0;
+      background: #fffbeb;
+      border: 1px solid #f59e0b;
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #92400e;
+      text-align: left;
+    }
+
+    /* 수정 모드일 때 meta 카드 상단 amber */
+    #meta-display.editing {
+      border-top: 3px solid #f59e0b !important;
+      border-top-left-radius: 0 !important;
+      border-top-right-radius: 0 !important;
+    }
+
+    /* ── Quill 툴바 버튼: 전역 파란 스타일 제거, 기본 흰 배경 유지 ── */
+    .ql-snow.ql-toolbar button {
+      background: transparent !important;
+      box-shadow: none !important;
+      border-radius: 4px !important;
+      color: inherit !important;
+    }
+    /* inactive 아이콘: 중간 회색 */
+    .ql-snow.ql-toolbar button .ql-stroke {
+      stroke: #64748b !important;
+    }
+    .ql-snow.ql-toolbar button .ql-fill {
+      fill: #64748b !important;
+    }
+    /* active/hover: 파란 배경 + 흰 아이콘으로 명확히 구분 */
+    .ql-snow.ql-toolbar button:hover,
+    .ql-snow.ql-toolbar button.ql-active {
+      background: #346cd7 !important;
+    }
+    .ql-snow.ql-toolbar button:hover .ql-stroke,
+    .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+      stroke: #fff !important;
+    }
+    .ql-snow.ql-toolbar button:hover .ql-fill,
+    .ql-snow.ql-toolbar button.ql-active .ql-fill {
+      fill: #fff !important;
+    }
+    /* picker (Normal 드롭다운) */
+    .ql-snow.ql-toolbar .ql-picker-label {
+      background: transparent !important;
+      box-shadow: none !important;
+      color: #64748b !important;
+    }
+    .ql-snow.ql-toolbar .ql-picker-label .ql-stroke {
+      stroke: #64748b !important;
+    }
+
+    /* ── 수정 전용 버튼 색상 분기 ── */
+    #btn-apply {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+      box-shadow: 0 8px 20px rgba(22, 163, 74, 0.28) !important;
+    }
+    #btn-apply:hover { filter: brightness(1.06) !important; }
+
+    #btn-cancel {
+      background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+      box-shadow: 0 8px 20px rgba(107, 114, 128, 0.22) !important;
+    }
+    #btn-cancel:hover { filter: brightness(1.06) !important; }
+  </style>
+  <link rel="stylesheet" href="theme-modern.css" />
+</head>
+<body>
+  <div id="page-header">
+    <a href="index.html" id="brand-logo">HYL <span>콘텐츠 검토</span></a>
+  </div>
+
+  <div id="demo-banner">
+    ⚠️ <b>데모 페이지</b> — 가짜 데이터로 UI 동작을 확인합니다. <b>수정</b> 버튼을 눌러 편집 모드를 테스트해보세요.
+  </div>
+
+  <div id="edit-mode-badge">✏️ 수정 중 — 변경사항은 <b>수정 완료</b>를 눌러야 저장됩니다.</div>
+
+  <div id="meta-display">
+    <div class="meta-company" id="meta-company">한양미래연구소</div>
+    <div class="meta-title" id="meta-title">2025 진로 탐색 캠프 참가 안내 — 미래를 설계하는 첫 걸음</div>
+    <input type="text" id="title-input" value="2025 진로 탐색 캠프 참가 안내 — 미래를 설계하는 첫 걸음" />
+    <div class="meta-date" id="meta-date">2025. 5. 15.</div>
+  </div>
+
+  <div id="content-display"></div>
+
+  <!-- 래퍼로 감싸면 Quill이 body에 삽입하는 툴바도 이 안에 들어옴 -->
+  <div id="editor-wrapper">
+    <div id="editor-container"></div>
+  </div>
+
+  <div id="buttons" style="display:none;">
+    <button onclick="toggleEditMode()">✏️ 수정</button>
+    <button onclick="alert('승인 요청이 전송되었습니다. (데모)')">✅ 승인</button>
+    <button onclick="alert('승인 취소 요청이 전송되었습니다. (데모)')">🔁 승인 취소</button>
+    <button onclick="alert('홈으로 이동합니다. (데모)')">🏠 홈으로</button>
+  </div>
+
+  <div id="edit-buttons" class="edit-buttons">
+    <button id="btn-apply" onclick="applyEdit()">📝 수정 완료</button>
+    <button id="btn-cancel" onclick="cancelEdit()">❌ 취소</button>
+    <button onclick="alert('이미지 추가 기능 (데모)')">🖼️ 이미지 추가</button>
+  </div>
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script>
+    const fakeHtml = `
+      <p>안녕하세요, 한양미래연구소입니다.</p>
+      <p>이번 <strong>2025 진로 탐색 캠프</strong>는 중·고등학생을 대상으로 다양한 직업 세계를 직접 체험하고 미래 진로를 설계할 수 있는 특별한 프로그램입니다.</p>
+      <h2>캠프 일정</h2>
+      <ul>
+        <li>일시: 2025년 5월 15일(목) ~ 5월 17일(토)</li>
+        <li>장소: 한양대학교 서울캠퍼스 미래관</li>
+        <li>대상: 중학교 2학년 ~ 고등학교 2학년</li>
+        <li>정원: 100명 (선착순 마감)</li>
+      </ul>
+      <h2>주요 프로그램</h2>
+      <p>참가 학생들은 AI·데이터 사이언스, 바이오·의료, 디자인·미디어, 경영·창업 등 4개 트랙 중 하나를 선택하여 전문가 멘토링과 실습 프로젝트를 경험하게 됩니다.</p>
+      <blockquote>이번 캠프가 학생들의 성장과 미래 진로 설계에 값진 경험이 될 바랍니다.<br>감사합니다.</blockquote>
+    `;
+
+    const contentDisplay = document.getElementById("content-display");
+    const editorWrapper = document.getElementById("editor-wrapper");
+    const editorContainer = document.getElementById("editor-container");
+    const buttons = document.getElementById("buttons");
+    const editButtons = document.getElementById("edit-buttons");
+    const metaTitle = document.getElementById("meta-title");
+    const metaDisplay = document.getElementById("meta-display");
+    const titleInput = document.getElementById("title-input");
+    const editModeBadge = document.getElementById("edit-mode-badge");
+
+    let currentContent = fakeHtml;
+    let isEditMode = false;
+    let quill;
+
+    contentDisplay.innerHTML = fakeHtml;
+    buttons.style.display = "flex";
+
+    quill = new Quill("#editor-container", {
+      theme: "snow",
+      placeholder: "내용을 수정하세요...",
+      modules: {
+        toolbar: [[{ header: [1, 2, false] }], ["bold", "italic", "underline"], ["link", "blockquote"], [{ list: "ordered" }, { list: "bullet" }]]
+      }
+    });
+    quill.clipboard.dangerouslyPasteHTML(fakeHtml);
+
+    function toggleEditMode() {
+      isEditMode = true;
+      editorWrapper.style.display = "block";   // 툴바 + 에디터 함께 표시
+      contentDisplay.style.display = "none";
+      buttons.style.display = "none";
+      editButtons.style.display = "flex";
+      metaTitle.style.display = "none";
+      titleInput.style.display = "block";
+      editModeBadge.style.display = "block";
+      metaDisplay.classList.add("editing");
+    }
+
+    function applyEdit() {
+      isEditMode = false;
+      currentContent = quill.root.innerHTML;
+      metaTitle.innerText = titleInput.value;
+      contentDisplay.innerHTML = currentContent;
+      editorWrapper.style.display = "none";    // 툴바 + 에디터 함께 숨김
+      contentDisplay.style.display = "block";
+      buttons.style.display = "flex";
+      editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
+      editModeBadge.style.display = "none";
+      metaDisplay.classList.remove("editing");
+    }
+
+    function cancelEdit() {
+      isEditMode = false;
+      editorWrapper.style.display = "none";    // 툴바 + 에디터 함께 숨김
+      contentDisplay.style.display = "block";
+      buttons.style.display = "flex";
+      editButtons.style.display = "none";
+      metaTitle.style.display = "block";
+      titleInput.style.display = "none";
+      editModeBadge.style.display = "none";
+      metaDisplay.classList.remove("editing");
+    }
+  </script>
+</body>
+</html>
