@@ -74,6 +74,58 @@ Make.com으로 `edited_html`, `edited_title`, `generation_method` 포함한 payl
 | 에디터 | Quill HTML 출력 | Markdown | Airtable 필드가 HTML 저장 |
 | 인증 | URL 파라미터 기반 | 로그인 폼 | 고객사 공유 링크 방식 |
 
+---
+
+## [수정 모드 UX 전면 개선] 추가 계획 — 2026-04-10
+
+### 목적
+Quill 툴바 버튼의 가독성 문제(파란 배경 + 검은 아이콘)를 해결하고, 수정 모드 진입/종료 경험을 자연스럽게 통합한다.
+
+### 현재 문제
+1. `theme-modern.css`의 전역 `button { background: blue gradient }` 규칙이 Quill 툴바 버튼에도 적용 → 파란 배경에 검은 SVG 아이콘(명도 대비 부족)
+2. 수정 모드와 뷰 모드 간 시각적 맥락 없이 영역이 교체됨 → 끊기는 느낌
+3. 수정 전용 버튼(수정완료/취소)과 일반 버튼(승인/홈으로)이 동일한 스타일이라 역할 구분 불분명
+
+### 변경 범위
+- 영향받는 파일: `theme-modern.css`
+- 참조 파일: `review-detail.html`, `review-detail-shared.html`, `review-detail-news.html`, `news-review.html`, `demo.html`
+
+### 구현 접근법
+
+**1) Quill 툴바 아이콘 흰색 처리**
+Quill 툴바 버튼은 `.ql-toolbar .ql-formats button`으로 선택 가능하다. SVG 아이콘 stroke/fill을 `#ffffff`로 재정의하고, picker label(Normal 드롭다운)도 흰색으로 처리한다.
+
+```css
+.ql-snow .ql-toolbar button .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label .ql-stroke { stroke: #ffffff; }
+.ql-snow .ql-toolbar button .ql-fill { fill: #ffffff; }
+.ql-snow .ql-toolbar .ql-picker-label { color: #ffffff; }
+```
+
+**2) 수정 모드 전용 색상 체계**
+- 수정완료: 초록(`#16a34a`) — 긍정적 완료 액션
+- 취소: 회색(`#6b7280`) — 중립적 취소
+- 이미지추가: 보조 파란색(기존 primary 유지, 단 명도 조정)
+
+**3) 에디터 영역 시각적 맥락 추가**
+- 수정 모드 진입 시 `#meta-display`에 `editing` 클래스 → 상단 보더를 amber(`#f59e0b`)로 변경
+- 에디터 컨테이너 상단에 "✏️ 수정 중" 배지 고정 표시 (JS로 toggle)
+
+**4) Quill 툴바 배경색 개선**
+Quill Snow 기본 툴바는 흰/회색 배경. 현재 전역 `button` 규칙이 덮어쓰므로 `.ql-toolbar` 내부 button에 별도 규칙으로 디자인 시스템 색상(더 어두운 primary)을 적용 + hover 시 밝아지게.
+
+### 단계
+1. `theme-modern.css`에 Quill 툴바 전용 오버라이드 추가 (아이콘 흰색, hover 상태)
+2. 수정완료/취소 버튼에 id 또는 data 속성으로 색상 분기
+3. 수정 모드 진입 시 "수정 중" 배지 show/hide (CSS + JS 최소 변경)
+4. demo.html에서 수정 모드 시각 확인
+
+### 완료 기준
+- [ ] Quill 툴바 B/I/U 등 아이콘이 파란 배경에서 흰색으로 보임
+- [ ] 수정완료 버튼이 초록, 취소 버튼이 회색으로 구별됨
+- [ ] 수정 모드 진입 시 "수정 중" 배지가 상단에 표시됨
+- [ ] demo.html 프리뷰에서 전체 플로우 시각 확인 완료
+
 ## 범위 외 (Out of Scope)
 - 다크 모드
 - 오프라인 지원
