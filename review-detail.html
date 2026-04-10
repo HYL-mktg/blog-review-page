@@ -29,9 +29,13 @@
 </head>
 <body>
   <div id="notice-bar">
-    <span style="color: #1e40af;">📢 <b>새 소식:</b> 
+    <span style="color: #1e40af;">📢 <b>새 소식:</b>
       <a id="notice-link" href="#" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: bold; margin-left: 5px;"></a>
     </span>
+  </div>
+
+  <div id="page-header">
+    <a href="index.html" id="brand-logo">HYL <span>콘텐츠 검토</span></a>
   </div>
 
   <div id="meta-display">
@@ -149,7 +153,7 @@
           titleInput.value = record["콘텐츠 제목"] || "제목 없음";
           metaDate.innerText = record["예약 날짜"] ? new Date(record["예약 날짜"]).toLocaleDateString("ko-KR") : "";
 
-          contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${htmlContent}</div>`;
+          contentDisplay.innerHTML = htmlContent;
           buttons.style.display = "block";
 
           quill = new Quill("#editor-container", {
@@ -180,7 +184,7 @@
       isEditMode = false;
       currentContent = quill.root.innerHTML;
       metaTitle.innerText = titleInput.value;
-      contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+      contentDisplay.innerHTML = currentContent;
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
@@ -257,7 +261,7 @@
       if (action === "approve") {
         payload["generation_method"] = generationMethod;
         payload["edited_title"] = titleInput.value;
-        payload["edited_html"] = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+        payload["edited_html"] = currentContent;
       }
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       .then(() => alert(`${action} 요청 완료`))

@@ -29,9 +29,13 @@
 </head>
 <body>
   <div id="notice-bar">
-    <span style="color: #1e40af;">📢 <b>새 소식:</b> 
+    <span style="color: #1e40af;">📢 <b>새 소식:</b>
       <a id="notice-link" href="#" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: bold; margin-left: 5px;"></a>
     </span>
+  </div>
+
+  <div id="page-header">
+    <a href="index.html" id="brand-logo">HYL <span>콘텐츠 검토</span></a>
   </div>
 
   <div id="meta-display">
@@ -152,7 +156,7 @@
           // 태그 추가 로직 유지
           const tags = record["Hashtag"] || "";
           const tagHtml = tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "";
-          contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${htmlContent}${tagHtml}</div>`;
+          contentDisplay.innerHTML = `${htmlContent}${tagHtml}`;
           
           buttons.style.display = "block";
           sessionStorage.setItem(`viewed_${company}_${postId}`, "true");
@@ -188,7 +192,7 @@
       isEditMode = false;
       currentContent = quill.root.innerHTML;
       metaTitle.innerText = titleInput.value;
-      contentDisplay.innerHTML = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+      contentDisplay.innerHTML = currentContent;
       editorContainer.style.display = "none";
       contentDisplay.style.display = "block";
       buttons.style.display = "block";
@@ -263,7 +267,7 @@
       if (action === "approve") {
         payload["generation_method"] = generationMethod;
         payload["edited_title"] = titleInput.value;
-        payload["edited_html"] = `<div style="max-width: 900px; margin: 0 auto;">${currentContent}</div>`;
+        payload["edited_html"] = currentContent;
       }
       
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
