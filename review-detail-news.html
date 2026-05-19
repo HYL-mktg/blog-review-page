@@ -47,12 +47,47 @@
     <div class="meta-date" id="meta-date"></div>
   </div>
 
+  <div id="view-tabs">
+    <button class="tab-btn active" id="tab-blog" onclick="switchTab('blog')">📝 블로그</button>
+    <button class="tab-btn" id="tab-sns" onclick="switchTab('sns')">📱 SNS 미리보기</button>
+  </div>
+
   <div id="loading">⏳ 불러오는 중입니다...</div>
   <div id="content-display"></div>
   <div id="editor-wrapper">
     <div id="editor-container"></div>
   </div>
   <textarea id="html-editor" spellcheck="false" style="display:none;"></textarea>
+
+  <div id="sns-display" style="display:none;">
+    <div class="sns-phone-wrap">
+      <div class="sns-card">
+        <div class="sns-card-header">
+          <div class="sns-avatar"></div>
+          <span class="sns-username" id="sns-username"></span>
+          <span class="sns-more">···</span>
+        </div>
+        <div class="sns-image-wrap">
+          <img id="sns-first-img" src="" alt="첫 번째 이미지">
+          <div id="sns-no-img-placeholder">이미지 없음</div>
+        </div>
+        <div class="sns-card-body">
+          <div class="sns-actions-row">
+            <span>♡</span><span>💬</span><span>✈️</span><span class="sns-bookmark">🔖</span>
+          </div>
+          <div class="sns-caption-live" id="sns-caption-live"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sns-edit-section">
+      <span class="sns-field-label">SNS 캡션 (메타)</span>
+      <textarea id="sns-meta-input" oninput="updateSnsPreview()" placeholder="SNS 캡션을 입력하세요..."></textarea>
+      <span class="sns-field-label" style="margin-top:14px;">해시태그</span>
+      <textarea id="sns-hashtag-input" oninput="updateSnsPreview()" placeholder="해시태그 (쉼표로 구분)"></textarea>
+      <span class="sns-field-label" style="margin-top:12px;">웹사이트 URL</span>
+      <div class="sns-url-text" id="sns-url-text"></div>
+    </div>
+  </div>
 
   <div id="buttons" style="display:none;">
     <button onclick="toggleEditMode()">✏️ 수정</button>
@@ -114,6 +149,68 @@
     let generationMethod = null;
     let isEditMode = false;
     let isHtmlMode = false;
+    let snsWebsiteUrl = "";
+
+    function extractFirstImage(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      const img = div.querySelector("img");
+      return img ? img.src : null;
+    }
+
+    function switchTab(tab) {
+      const tabBlog = document.getElementById("tab-blog");
+      const tabSns = document.getElementById("tab-sns");
+      const snsDisplay = document.getElementById("sns-display");
+      if (tab === "blog") {
+        tabBlog.classList.add("active");
+        tabSns.classList.remove("active");
+        snsDisplay.style.display = "none";
+        if (isEditMode) {
+          editorWrapper.style.display = "block";
+        } else {
+          contentDisplay.style.display = "block";
+        }
+      } else {
+        tabBlog.classList.remove("active");
+        tabSns.classList.add("active");
+        contentDisplay.style.display = "none";
+        editorWrapper.style.display = "none";
+        snsDisplay.style.display = "block";
+      }
+    }
+
+    function updateSnsPreview() {
+      const metaInput = document.getElementById("sns-meta-input");
+      const hashtagInput = document.getElementById("sns-hashtag-input");
+      const captionLive = document.getElementById("sns-caption-live");
+      const urlText = document.getElementById("sns-url-text");
+      const metaVal = metaInput ? metaInput.value.trim() : "";
+      const rawHashtag = hashtagInput ? hashtagInput.value : "";
+      const hashtagVal = rawHashtag ? rawHashtag.split(",").map(t => "#" + t.trim()).filter(t => t !== "#").join(" ") : "";
+      const urlVal = snsWebsiteUrl || "";
+      captionLive.textContent = [metaVal, hashtagVal, urlVal].filter(Boolean).join("\n\n");
+      urlText.textContent = urlVal || "URL 없음";
+    }
+
+    function setupSnsPanel(record, html) {
+      snsWebsiteUrl = record["웹사이트 URL"] || "";
+      document.getElementById("sns-meta-input").value = record["메타"] || "";
+      document.getElementById("sns-hashtag-input").value = record["Hashtag"] || "";
+      document.getElementById("sns-username").textContent = record["기업명"] || "";
+      const firstImgSrc = extractFirstImage(html);
+      const snsImg = document.getElementById("sns-first-img");
+      const snsNoImg = document.getElementById("sns-no-img-placeholder");
+      if (firstImgSrc) {
+        snsImg.src = firstImgSrc;
+        snsImg.style.display = "block";
+        snsNoImg.style.display = "none";
+      } else {
+        snsImg.style.display = "none";
+        snsNoImg.style.display = "flex";
+      }
+      updateSnsPreview();
+    }
 
     // ✅ 공지 로드 함수 (신규 코드 기능)
     function loadNotice() {
@@ -167,8 +264,9 @@
           const tags = record["Hashtag"] || "";
           const tagHtml = tags ? `<div class="meta-tags">#${tags.replaceAll(",", " #")}</div>` : "";
           contentDisplay.innerHTML = `${htmlContent}${tagHtml}`;
-          
+
           buttons.style.display = "flex";
+          setupSnsPanel(record, htmlContent);
           sessionStorage.setItem(`viewed_${company}_${postId}`, "true");
 
           quill = new Quill("#editor-container", {
@@ -190,6 +288,7 @@
 
     function toggleEditMode() {
       isEditMode = true;
+      switchTab("blog");
       editorWrapper.style.display = "block";
       contentDisplay.style.display = "none";
       buttons.style.display = "none";
@@ -198,6 +297,8 @@
       titleInput.style.display = "block";
       editModeBadge.style.display = "block";
       metaDisplay.classList.add("editing");
+      document.getElementById("tab-sns").style.opacity = "0.4";
+      document.getElementById("tab-sns").style.pointerEvents = "none";
     }
 
     function toggleHtmlMode() {
@@ -241,6 +342,19 @@
       titleInput.style.display = "none";
       editModeBadge.style.display = "none";
       metaDisplay.classList.remove("editing");
+      document.getElementById("tab-sns").style.opacity = "";
+      document.getElementById("tab-sns").style.pointerEvents = "";
+      const firstImgSrc = extractFirstImage(currentContent);
+      const snsImg = document.getElementById("sns-first-img");
+      const snsNoImg = document.getElementById("sns-no-img-placeholder");
+      if (firstImgSrc) {
+        snsImg.src = firstImgSrc;
+        snsImg.style.display = "block";
+        snsNoImg.style.display = "none";
+      } else {
+        snsImg.style.display = "none";
+        snsNoImg.style.display = "flex";
+      }
     }
 
     function cancelEdit() {
@@ -259,6 +373,8 @@
       titleInput.style.display = "none";
       editModeBadge.style.display = "none";
       metaDisplay.classList.remove("editing");
+      document.getElementById("tab-sns").style.opacity = "";
+      document.getElementById("tab-sns").style.pointerEvents = "";
     }
 
     // ✅ 이미지 삭제 로직 (우클릭)
@@ -313,13 +429,17 @@
       const url = action === "approve" ? webhookApprove : webhookRetry;
       const payload = { post_id: postId, company: company, action: action };
       if (airtableRecordId) payload.airtable_record_id = airtableRecordId;
-      
+
       if (action === "approve") {
         payload["generation_method"] = generationMethod;
         payload["edited_title"] = titleInput.value;
         payload["edited_html"] = currentContent;
+        const snsMetaInput = document.getElementById("sns-meta-input");
+        if (snsMetaInput) payload["edited_meta"] = snsMetaInput.value;
+        const snsHashtagInput = document.getElementById("sns-hashtag-input");
+        if (snsHashtagInput) payload["edited_hashtag"] = snsHashtagInput.value;
       }
-      
+
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       .then(() => alert(`"${action}" 요청 완료`))
       .catch(() => alert("오류 발생"));

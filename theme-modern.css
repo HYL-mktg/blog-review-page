@@ -420,3 +420,210 @@ textarea {
     padding: 20px 20px 28px !important;
   }
 }
+
+/* ── View Tabs ──────────────────────────────────────────────── */
+#view-tabs {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-top: none;
+  border-bottom: none;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600 !important;
+  background: transparent !important;
+  color: var(--text-soft) !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transform: none !important;
+  filter: none !important;
+  text-align: center !important;
+}
+
+.tab-btn.active {
+  color: var(--primary) !important;
+  border-bottom: 2px solid var(--primary) !important;
+  background: var(--bg) !important;
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* ── SNS Preview Panel ──────────────────────────────────────── */
+#sns-display {
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  padding: 28px 32px 36px;
+  box-shadow: var(--shadow);
+}
+
+.sns-phone-wrap {
+  max-width: 380px;
+  margin: 0 auto 28px;
+}
+
+.sns-card {
+  border: 1px solid #dbdbdb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.sns-card-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 10px;
+}
+
+.sns-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f9ce34, #ee2a7b, #6228d7);
+  flex-shrink: 0;
+}
+
+.sns-username {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+  color: #111;
+}
+
+.sns-more {
+  color: #888;
+  font-size: 16px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+.sns-image-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sns-image-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: none;
+}
+
+#sns-no-img-placeholder {
+  color: #bbb;
+  font-size: 13px;
+}
+
+.sns-card-body {
+  padding: 6px 12px 14px;
+}
+
+.sns-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+  font-size: 20px;
+  color: #111;
+}
+
+.sns-bookmark {
+  margin-left: auto;
+}
+
+.sns-caption-live {
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #111;
+}
+
+.sns-edit-section {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.sns-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.sns-edit-section textarea {
+  width: 100%;
+  padding: 12px !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  resize: vertical !important;
+  min-height: 110px !important;
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif !important;
+  color: var(--text) !important;
+  border-radius: 10px !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.sns-hashtags-text {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 500;
+  padding: 8px 12px;
+  background: var(--primary-soft);
+  border-radius: 8px;
+  word-break: break-word;
+  min-height: 36px;
+}
+
+.sns-url-text {
+  font-size: 13px;
+  color: var(--text-soft);
+  padding: 8px 12px;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  word-break: break-all;
+  min-height: 36px;
+}
+
+@media (max-width: 900px) {
+  #sns-display {
+    padding: 20px 20px 28px !important;
+  }
+
+  .sns-phone-wrap {
+    max-width: 100%;
+  }
+}
