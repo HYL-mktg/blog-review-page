@@ -424,15 +424,16 @@ textarea {
 /* ── View Tabs ──────────────────────────────────────────────── */
 #view-tabs {
   max-width: 800px;
-  margin: 0 auto;
+  margin: 12px auto 0;
   display: flex;
-  background: var(--bg-soft);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-top: none;
   border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
 }
 
-.tab-btn {
+#view-tabs .tab-btn {
   flex: 1;
   padding: 10px 16px;
   font-size: 13px;
@@ -450,13 +451,13 @@ textarea {
   text-align: center !important;
 }
 
-.tab-btn.active {
+#view-tabs .tab-btn.active {
   color: var(--primary) !important;
   border-bottom: 2px solid var(--primary) !important;
   background: var(--bg) !important;
 }
 
-.tab-btn:hover:not(.active) {
+#view-tabs .tab-btn:hover:not(.active) {
   background: var(--primary-soft) !important;
   color: var(--primary) !important;
   transform: none !important;
