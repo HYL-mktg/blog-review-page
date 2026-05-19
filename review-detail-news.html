@@ -83,7 +83,7 @@
       <span class="sns-field-label">SNS 캡션 (메타)</span>
       <textarea id="sns-meta-input" oninput="updateSnsPreview()" placeholder="SNS 캡션을 입력하세요..."></textarea>
       <span class="sns-field-label" style="margin-top:14px;">해시태그</span>
-      <div class="sns-hashtags-text" id="sns-hashtags-text"></div>
+      <textarea id="sns-hashtag-input" oninput="updateSnsPreview()" placeholder="해시태그 (쉼표로 구분)"></textarea>
       <span class="sns-field-label" style="margin-top:12px;">웹사이트 URL</span>
       <div class="sns-url-text" id="sns-url-text"></div>
     </div>
@@ -149,7 +149,6 @@
     let generationMethod = null;
     let isEditMode = false;
     let isHtmlMode = false;
-    let snsHashtags = "";
     let snsWebsiteUrl = "";
 
     function extractFirstImage(html) {
@@ -183,21 +182,21 @@
 
     function updateSnsPreview() {
       const metaInput = document.getElementById("sns-meta-input");
+      const hashtagInput = document.getElementById("sns-hashtag-input");
       const captionLive = document.getElementById("sns-caption-live");
-      const hashtagsText = document.getElementById("sns-hashtags-text");
       const urlText = document.getElementById("sns-url-text");
       const metaVal = metaInput ? metaInput.value.trim() : "";
-      const hashtagVal = snsHashtags ? snsHashtags.split(",").map(t => "#" + t.trim()).join(" ") : "";
+      const rawHashtag = hashtagInput ? hashtagInput.value : "";
+      const hashtagVal = rawHashtag ? rawHashtag.split(",").map(t => "#" + t.trim()).filter(t => t !== "#").join(" ") : "";
       const urlVal = snsWebsiteUrl || "";
       captionLive.textContent = [metaVal, hashtagVal, urlVal].filter(Boolean).join("\n\n");
-      hashtagsText.textContent = hashtagVal || "해시태그 없음";
       urlText.textContent = urlVal || "URL 없음";
     }
 
     function setupSnsPanel(record, html) {
-      snsHashtags = record["Hashtag"] || "";
       snsWebsiteUrl = record["웹사이트 URL"] || "";
       document.getElementById("sns-meta-input").value = record["메타"] || "";
+      document.getElementById("sns-hashtag-input").value = record["Hashtag"] || "";
       document.getElementById("sns-username").textContent = record["기업명"] || "";
       const firstImgSrc = extractFirstImage(html);
       const snsImg = document.getElementById("sns-first-img");
@@ -436,7 +435,9 @@
         payload["edited_title"] = titleInput.value;
         payload["edited_html"] = currentContent;
         const snsMetaInput = document.getElementById("sns-meta-input");
-        if (snsMetaInput) payload["edited_sns_meta"] = snsMetaInput.value;
+        if (snsMetaInput) payload["edited_meta"] = snsMetaInput.value;
+        const snsHashtagInput = document.getElementById("sns-hashtag-input");
+        if (snsHashtagInput) payload["edited_hashtag"] = snsHashtagInput.value;
       }
 
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
