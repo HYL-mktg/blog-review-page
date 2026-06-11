@@ -408,7 +408,7 @@
           ctx.drawImage(img, 0, 0);
           canvas.toBlob(function (blob) {
             const formData = new FormData();
-            formData.append("file", blob, "image.jpg");
+            formData.append("file", blob, `image_${Date.now()}.jpg`);
             formData.append("upload_preset", "mktg_ai");
             fetch("https://api.cloudinary.com/v1_1/dte6zhuck/image/upload", { method: "POST", body: formData })
               .then(res => res.json())
@@ -416,6 +416,7 @@
                 const url = result.secure_url;
                 const range = quill.getSelection(true);
                 quill.insertEmbed(range.index, "image", url, Quill.sources.USER);
+                document.getElementById("image-upload").value = "";
               })
               .catch(err => alert("이미지 업로드 실패"));
           }, "image/jpeg", 0.92);
