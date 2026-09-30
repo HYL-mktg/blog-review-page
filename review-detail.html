@@ -152,6 +152,56 @@
     let isHtmlMode = false;
     let snsWebsiteUrl = "";
 
+    // 월간 설비기술 전용: 원본 HTML(중첩 <p>, 맨텍스트, <br> 혼재)을 브라우저가 파싱한 "눈에 보이는 줄" 기준으로
+    // 깨끗한 <p> 목록으로 정규화한다. Quill이 깨진 HTML을 읽다가 줄을 합치는 문제를 막고,
+    // 최초 화면 = 수정창 = 수정 완료 화면 = 저장값이 같은 구조가 되게 한다. (<hr>은 Quill이 어차피 제거하므로 제외)
+    function normalizeForQuill(html) {
+      const root = document.createElement("div");
+      root.innerHTML = html;
+      const out = [];
+      let buf = "";
+      const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const flush = () => { const t = buf.replace(/\s+/g, " ").trim(); if (t) out.push("<p>" + t + "</p>"); buf = ""; };
+      const blank = () => { flush(); out.push("<p><br></p>"); };
+      const BLOCK = /^(P|DIV|H[1-6]|UL|OL|LI|BLOCKQUOTE|HR|TABLE|SECTION|ARTICLE)$/;
+      const KEEP = /^(STRONG|B|EM|I|U)$/;
+      function inl(n) {
+        if (n.nodeType === 3) return esc(n.textContent);
+        if (n.nodeType !== 1) return "";
+        if (n.tagName === "BR") return "\u0001";
+        if (n.tagName === "IMG") return "\u0002" + n.getAttribute("src") + "\u0002";
+        const inner = Array.from(n.childNodes).map(inl).join("");
+        if (KEEP.test(n.tagName) && inner.trim()) { const t = n.tagName.toLowerCase(); return "<" + t + ">" + inner + "</" + t + ">"; }
+        if (n.tagName === "A" && n.getAttribute("href") && inner.trim()) return '<a href="' + n.getAttribute("href").replace(/"/g, "&quot;") + '">' + inner + "</a>";
+        return inner;
+      }
+      function feed(s) {
+        s.split(/(\u0001|\u0002[^\u0002]*\u0002)/).forEach(tok => {
+          if (tok === "\u0001") { if (buf.replace(/\s+/g, "")) flush(); else blank(); }
+          else if (tok[0] === "\u0002") { flush(); out.push('<p><img src="' + tok.slice(1, -1) + '"></p>'); }
+          else buf += tok;
+        });
+      }
+      function walk(n) {
+        if (n.nodeType === 3) { buf += esc(n.textContent); return; }
+        if (n.nodeType !== 1) return;
+        const tag = n.tagName;
+        if (tag === "HR") { flush(); return; }
+        if (tag === "BR") { if (buf.replace(/\s+/g, "")) flush(); else blank(); return; }
+        if (!BLOCK.test(tag)) { feed(inl(n)); return; }
+        flush();
+        const kids = Array.from(n.childNodes);
+        if (kids.some(k => k.nodeType === 1 && BLOCK.test(k.tagName)) || tag === "DIV") { kids.forEach(walk); flush(); return; }
+        const onlyBr = kids.length && kids.every(k => (k.nodeType === 1 && k.tagName === "BR") || (k.nodeType === 3 && !k.textContent.trim()));
+        if (onlyBr) { blank(); return; }
+        if (!n.textContent.trim() && !n.querySelector("img")) return;
+        feed(kids.map(inl).join("")); flush();
+      }
+      Array.from(root.childNodes).forEach(walk);
+      flush();
+      return out.join("");
+    }
+
     function extractFirstImage(html) {
       const div = document.createElement("div");
       div.innerHTML = html;
@@ -255,6 +305,7 @@
           if (!record) return;
           generationMethod = record["생성 방식"] || "";
           htmlContent = record["내용(html)"] || "";
+          if (company === "월간 설비기술") htmlContent = normalizeForQuill(htmlContent);
           currentContent = htmlContent;
 
           metaCompany.innerText = record["기업명"] || "";
