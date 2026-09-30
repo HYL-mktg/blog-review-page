@@ -118,6 +118,8 @@
     const isPublic = access.isPublic;
     const company = access.company;
     const postId = urlParams.get("post_id");
+    // 월간 설비기술: 수정창 미리보기를 완료 화면과 동일한 스타일로 표시 (theme-modern.css의 .wysiwyg-match)
+    if (company === "월간 설비기술") document.body.classList.add("wysiwyg-match");
 
     if (!company || !postId) {
       window.location.href = "index.html";
@@ -430,6 +432,12 @@
         payload["generation_method"] = generationMethod;
         payload["edited_title"] = titleInput.value;
         payload["edited_html"] = currentContent;
+        // 월간 설비기술: Make 승인 시나리오(모듈 20 "네이버용 문단 간격 x")가 "</p><p><br></p><p>"를
+        // "<p></p>"로 치환해 <p> 중첩·빈 줄 소실이 발생하므로, 빈 줄 문단에 class를 달아 패턴에 걸리지 않게 함.
+        // 저장값(에어테이블)이 수정창 내용과 동일하게 유지된다.
+        if (company === "월간 설비기술") {
+          payload["edited_html"] = currentContent.replace(/<p><br><\/p>/g, '<p class="blank-line"><br></p>');
+        }
         const snsMetaInput = document.getElementById("sns-meta-input");
         if (snsMetaInput) payload["edited_meta"] = snsMetaInput.value;
         const snsHashtagInput = document.getElementById("sns-hashtag-input");
