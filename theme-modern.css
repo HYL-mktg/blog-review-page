@@ -629,3 +629,43 @@ textarea {
     max-width: 100%;
   }
 }
+
+/* ── 월간 설비기술 전용: 수정창(Quill)을 #content-display와 동일하게 ─────
+   body.wysiwyg-match 는 review-detail.html 에서 기업명으로 부여한다.
+   다른 기업은 네이버 업로드용 여백이 의도된 것이라 영향 없음. */
+body.wysiwyg-match .ql-editor {
+  padding: 28px 32px 36px;
+  line-height: 1.85;
+  font-size: 15px;
+  color: #1a2030;
+}
+body.wysiwyg-match .ql-editor p { margin: 0 0 1.1em; }
+body.wysiwyg-match .ql-editor h1,
+body.wysiwyg-match .ql-editor h2,
+body.wysiwyg-match .ql-editor h3 {
+  color: #0b1220;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.6em 0 0.5em;
+}
+body.wysiwyg-match .ql-editor h1 { font-size: 1.5rem; }
+body.wysiwyg-match .ql-editor h2 { font-size: 1.25rem; }
+body.wysiwyg-match .ql-editor h3 { font-size: 1.1rem; }
+body.wysiwyg-match .ql-editor ul,
+body.wysiwyg-match .ql-editor ol { padding-left: 1.5em; margin: 0 0 1.1em; }
+body.wysiwyg-match .ql-editor li { margin-bottom: 0.35em; }
+body.wysiwyg-match .ql-editor blockquote {
+  border-left: 3px solid var(--primary-soft);
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  background: var(--bg-soft);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-soft);
+}
+body.wysiwyg-match .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  margin: 16px auto;
+}

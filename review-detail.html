@@ -118,6 +118,8 @@
     const isPublic = access.isPublic;
     const company = access.company;
     const postId = urlParams.get("post_id");
+    // 월간 설비기술: 수정창 미리보기를 완료 화면과 동일한 스타일로 표시 (theme-modern.css의 .wysiwyg-match)
+    if (company === "월간 설비기술") document.body.classList.add("wysiwyg-match");
 
     if (!company || !postId) {
       window.location.href = "index.html";
