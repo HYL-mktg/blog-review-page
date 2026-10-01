@@ -528,6 +528,8 @@
           payload["edited_html"] = currentContent
             .replace(/<br class="soft-br">/g, "<br>")
             .replace(/<p><br><\/p>/g, '<p class="blank-line"><br></p>');
+          // 이미지 중앙 정렬 등을 위해 글 전체를 래퍼 div로 감싸 저장 (로드 시 정규화가 div를 풀어주므로 중복 래핑 없음)
+          payload["edited_html"] = '<div style="max-width: 900px; margin: 0 auto;">' + payload["edited_html"] + "</div>";
         }
         const snsMetaInput = document.getElementById("sns-meta-input");
         if (snsMetaInput) payload["edited_meta"] = snsMetaInput.value;
