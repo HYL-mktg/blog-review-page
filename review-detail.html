@@ -527,6 +527,8 @@
         if (company === "월간 설비기술") {
           payload["edited_html"] = currentContent
             .replace(/<br class="soft-br">/g, "<br>")
+            // <img로 시작하는 문단은 항상 중앙 정렬 (Quill이 text-align 스타일/클래스를 바꾸므로 전송 직전에 통일)
+            .replace(/<p(?:\s[^>]*)?>(?=<img\b)/g, '<p style="text-align: center;">')
             .replace(/<p><br><\/p>/g, '<p class="blank-line"><br></p>');
           // 이미지 중앙 정렬 등을 위해 글 전체를 래퍼 div로 감싸 저장 (로드 시 정규화가 div를 풀어주므로 중복 래핑 없음)
           payload["edited_html"] = '<div style="max-width: 900px; margin: 0 auto;">' + payload["edited_html"] + "</div>";
