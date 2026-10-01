@@ -161,7 +161,7 @@
       const out = [];
       let buf = "";
       const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const flush = () => { const t = buf.replace(/\s+/g, " ").trim(); if (t) out.push("<p>" + t + "</p>"); buf = ""; };
+      const flush = () => { const t = buf.replace(/\s+/g, " ").replace(/^( ?<br> ?)+|( ?<br> ?)+$/g, "").trim(); if (t) out.push("<p>" + t + "</p>"); buf = ""; };
       const blank = () => { flush(); out.push("<p><br></p>"); };
       const BLOCK = /^(P|DIV|H[1-6]|UL|OL|LI|BLOCKQUOTE|HR|TABLE|SECTION|ARTICLE)$/;
       const KEEP = /^(STRONG|B|EM|I|U)$/;
@@ -177,7 +177,7 @@
       }
       function feed(s) {
         s.split(/(\u0001|\u0002[^\u0002]*\u0002)/).forEach(tok => {
-          if (tok === "\u0001") { if (buf.replace(/\s+/g, "")) flush(); else blank(); }
+          if (tok === "\u0001") { if (buf.replace(/\s+/g, "")) buf += "<br>"; else blank(); }
           else if (tok[0] === "\u0002") { flush(); out.push('<p><img src="' + tok.slice(1, -1) + '"></p>'); }
           else buf += tok;
         });
@@ -187,7 +187,7 @@
         if (n.nodeType !== 1) return;
         const tag = n.tagName;
         if (tag === "HR") { flush(); return; }
-        if (tag === "BR") { if (buf.replace(/\s+/g, "")) flush(); else blank(); return; }
+        if (tag === "BR") { if (buf.replace(/\s+/g, "")) buf += "<br>"; else blank(); return; }
         if (!BLOCK.test(tag)) { feed(inl(n)); return; }
         flush();
         const kids = Array.from(n.childNodes);
@@ -200,6 +200,42 @@
       Array.from(root.childNodes).forEach(walk);
       flush();
       return out.join("");
+    }
+
+    // 월간 설비기술 전용: Shift+Enter로 <p> 대신 <br>(소프트 줄바꿈) 삽입.
+    // 빈 줄 자리표시자 <br>과 구분하기 위해 class="soft-br"를 가진 별도 블롯으로 등록하고,
+    // 승인 전송 시 class를 제거해 순수 <br>로 저장한다.
+    function setupSoftBreak() {
+      const Embed = Quill.import("blots/embed");
+      class SoftBreak extends Embed {
+        static create() { const n = super.create(); n.setAttribute("class", "soft-br"); return n; }
+        static value() { return true; }
+      }
+      SoftBreak.blotName = "softbreak";
+      SoftBreak.tagName = "BR";
+      SoftBreak.className = "soft-br";
+      Quill.register(SoftBreak, true);
+    }
+    function bindSoftBreak(q) {
+      const Delta = Quill.import("delta");
+      // 문단 안에 다른 내용과 함께 있는 <br>만 소프트 줄바꿈으로 취급 (단독 <br>은 빈 줄 문단)
+      q.clipboard.addMatcher("BR", function (node, delta) {
+        const siblings = Array.from(node.parentNode ? node.parentNode.childNodes : []);
+        const hasContent = siblings.some(n => n !== node && (n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())));
+        return hasContent ? new Delta().insert({ softbreak: true }) : delta;
+      });
+      const handler = function (range) {
+        q.insertEmbed(range.index, "softbreak", true, Quill.sources.USER);
+        const res = q.getLine(range.index + 1);
+        const line = res[0], offset = res[1];
+        // 줄 끝의 <br>은 화면에 줄로 잡히지 않으므로 하나 더 넣고 커서는 그 앞에 둔다
+        if (line && offset === line.length() - 1) q.insertEmbed(range.index + 1, "softbreak", true, Quill.sources.USER);
+        q.setSelection(range.index + 1, Quill.sources.SILENT);
+        return false;
+      };
+      q.keyboard.addBinding({ key: 13, shiftKey: true }, handler);
+      const list = q.keyboard.bindings[13];
+      list.unshift(list.pop()); // 기본 Enter 바인딩보다 먼저 실행
     }
 
     function extractFirstImage(html) {
@@ -317,6 +353,7 @@
           buttons.style.display = "flex";
           setupSnsPanel(record, htmlContent);
 
+          if (company === "월간 설비기술") setupSoftBreak();
           quill = new Quill("#editor-container", {
             theme: "snow",
             placeholder: "내용을 수정하세요...",
@@ -324,6 +361,7 @@
               toolbar: [[{ header: [1, 2, false] }], ["bold", "italic", "underline"], ["link", "blockquote"], [{ list: "ordered" }, { list: "bullet" }]]
             }
           });
+          if (company === "월간 설비기술") bindSoftBreak(quill);
           quill.clipboard.dangerouslyPasteHTML(htmlContent);
           
           // 데이터 로드 성공 후 공지사항 실행
@@ -487,7 +525,9 @@
         // "<p></p>"로 치환해 <p> 중첩·빈 줄 소실이 발생하므로, 빈 줄 문단에 class를 달아 패턴에 걸리지 않게 함.
         // 저장값(에어테이블)이 수정창 내용과 동일하게 유지된다.
         if (company === "월간 설비기술") {
-          payload["edited_html"] = currentContent.replace(/<p><br><\/p>/g, '<p class="blank-line"><br></p>');
+          payload["edited_html"] = currentContent
+            .replace(/<br class="soft-br">/g, "<br>")
+            .replace(/<p><br><\/p>/g, '<p class="blank-line"><br></p>');
         }
         const snsMetaInput = document.getElementById("sns-meta-input");
         if (snsMetaInput) payload["edited_meta"] = snsMetaInput.value;
